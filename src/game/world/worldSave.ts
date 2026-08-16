@@ -21,12 +21,16 @@ import type { ZoneId } from "./zoneTypes";
 const STORAGE_KEY = "ivyward-save-v1";
 /** Pre-rename key; migrate on read so existing host saves are not lost. */
 const LEGACY_STORAGE_KEY = "poke-save-v1";
+/** Raw payload of the last save that could not be repaired (#190). */
+const BACKUP_STORAGE_KEY = "ivyward-save-v1-backup";
 
-let hostPosition: WorldSnapshot["position"] = {
+const DEFAULT_HOST_POSITION: WorldSnapshot["position"] = {
   zoneId: STARTING_ZONE_ID,
   x: 3,
   y: 7,
 };
+
+let hostPosition: WorldSnapshot["position"] = { ...DEFAULT_HOST_POSITION };
 
 function readRawSave(): string | null {
   try {
@@ -84,9 +88,43 @@ export function resetHostGame(): void {
   window.location.assign(url.toString());
 }
 
-export function loadHostSave(): WorldSnapshot | null {
+/**
+ * Position is the only structurally fragile snapshot field — map layout
+ * changes have invalidated saved positions twice before (see the legacy
+ * repair functions). Retry validation with the default spawn: first position
+ * alone, then also grounding a mid-sail flag that cannot hold at a land
+ * spawn. Anything else stays unrepairable (#190).
+ */
+function repairWithDefaultSpawn(parsed: unknown): WorldSnapshot | null {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+  // The default spawn is land, so a mid-sail flag can never hold there —
+  // ground it along with the position (the validator would otherwise accept
+  // sailing at the grove spawn and load a stuck sail-on-land state).
+  const respawned = {
+    ...(parsed as Record<string, unknown>),
+    position: { ...DEFAULT_HOST_POSITION },
+    sailing: false,
+  };
+  if (isValidWorldSnapshot(respawned)) {
+    return respawned;
+  }
+  return null;
+}
+
+function backupRawSave(raw: string): void {
   try {
-    const raw = readRawSave();
+    localStorage.setItem(BACKUP_STORAGE_KEY, raw);
+  } catch {
+    // ponytail: ignore quota/private-mode failures
+  }
+}
+
+export function loadHostSave(): WorldSnapshot | null {
+  let raw: string | null = null;
+  try {
+    raw = readRawSave();
     if (!raw) {
       return null;
     }
@@ -94,12 +132,21 @@ export function loadHostSave(): WorldSnapshot | null {
     migrateBoatStateToHarbor(parsed);
     repairLegacyOverworldShorePosition(parsed);
     repairLegacyArchipelagoLayoutPosition(parsed);
-    if (!isValidWorldSnapshot(parsed)) {
-      clearHostSave();
-      return null;
+    if (isValidWorldSnapshot(parsed)) {
+      return parsed;
     }
-    return parsed;
+    const repaired = repairWithDefaultSpawn(parsed);
+    if (repaired) {
+      return repaired;
+    }
+    // Unrepairable: keep the raw payload recoverable instead of deleting it.
+    backupRawSave(raw);
+    clearHostSave();
+    return null;
   } catch {
+    if (raw) {
+      backupRawSave(raw);
+    }
     clearHostSave();
     return null;
   }
