@@ -393,3 +393,24 @@ describe("archipelago visual XY window", () => {
     expect(ARCHIPELAGO_GATE_COLUMNS).toBe(3);
   });
 });
+
+describe("island template caching (#194)", () => {
+  it("returns identical template instances on repeated lookups", () => {
+    expect(islandTemplateAtIndex(3)).toBe(islandTemplateAtIndex(3));
+  });
+
+  it("returns the identical list instance per width (no per-call construction)", () => {
+    const a = listIslandTemplates(ARCHIPELAGO_MAX_WIDTH);
+    const b = listIslandTemplates(ARCHIPELAGO_MAX_WIDTH);
+    expect(b).toBe(a);
+    expect(a.length).toBeGreaterThan(0);
+  });
+
+  it("caches per distinct width without cross-contamination", () => {
+    const wide = listIslandTemplates(ARCHIPELAGO_MAX_WIDTH);
+    const narrow = listIslandTemplates(30);
+    expect(narrow).not.toBe(wide);
+    expect(narrow.length).toBeLessThan(wide.length);
+    expect(listIslandTemplates(30)).toBe(narrow);
+  });
+});

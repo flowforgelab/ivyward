@@ -226,6 +226,22 @@ export class IsometricScene extends Phaser.Scene {
   /** Boat sprite that follows the player while sailing. */
   private sailingBoat?: Phaser.GameObjects.Image;
   /** Westmost column still holding archipelago stream sprites (exclusive cull). */
+  /** Live stream-tagged sprites; culls iterate this, never the full display list (#194). */
+  private streamSprites = new Set<Phaser.GameObjects.Image>();
+
+  private registerStreamSprite(
+    img: Phaser.GameObjects.Image,
+    x: number,
+    y: number,
+  ): void {
+    img.setData("streamX", x);
+    img.setData("streamY", y);
+    this.streamSprites.add(img);
+    img.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.streamSprites.delete(img);
+    });
+  }
+
   private archipelagoVisualWin: ArchipelagoVisualWindow = {
     xMin: ARCHIPELAGO_GATE_COLUMNS,
     xMax: ARCHIPELAGO_MAX_WIDTH,
@@ -742,19 +758,11 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private destroyArchipelagoSpritesOutside(win: ArchipelagoVisualWindow): void {
-    for (const child of this.children.list.slice()) {
-      if (
-        !("getData" in child) ||
-        typeof (child as Phaser.GameObjects.Image).getData !== "function"
-      ) {
-        continue;
-      }
-      const img = child as Phaser.GameObjects.Image;
-      const gx = img.getData("streamX");
-      const gy = img.getData("streamY");
-      if (typeof gx !== "number" || typeof gy !== "number") {
-        continue;
-      }
+    // Deleting the current entry via the sprite's DESTROY handler is safe
+    // during Set iteration.
+    for (const img of this.streamSprites) {
+      const gx = img.getData("streamX") as number;
+      const gy = img.getData("streamY") as number;
       if (!isInArchipelagoVisualWindow(gx, gy, win)) {
         img.destroy();
       }
@@ -859,19 +867,10 @@ export class IsometricScene extends Phaser.Scene {
         const xStart = Math.max(next.xMin, from);
         const xEnd = Math.min(next.xMax, result.previousWidth);
         if (xStart < xEnd) {
-          for (const child of this.children.list.slice()) {
+          for (const img of this.streamSprites) {
+            const gx = img.getData("streamX") as number;
+            const gy = img.getData("streamY") as number;
             if (
-              !("getData" in child) ||
-              typeof (child as Phaser.GameObjects.Image).getData !== "function"
-            ) {
-              continue;
-            }
-            const img = child as Phaser.GameObjects.Image;
-            const gx = img.getData("streamX");
-            const gy = img.getData("streamY");
-            if (
-              typeof gx === "number" &&
-              typeof gy === "number" &&
               gx >= xStart &&
               gx < xEnd &&
               gy >= next.yMin &&
@@ -1145,8 +1144,7 @@ export class IsometricScene extends Phaser.Scene {
           .image(screen.x, screen.y, ...imagineTexture(this, textureKey))
           .setOrigin(0.5, 0.5);
         fitDisplay(tile, FLOOR_DISPLAY);
-        tile.setData("streamX", x);
-        tile.setData("streamY", y);
+        this.registerStreamSprite(tile, x, y);
 
         if (tileType === TileType.Floor && zone.id === "archipelago") {
           const biome = biomeAtIslandTile(x, y);
@@ -1241,8 +1239,7 @@ export class IsometricScene extends Phaser.Scene {
           .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, ...imagineTexture(this, boundaryKey))
           .setOrigin(0.5, 1);
         fitDisplay(block, BOUNDARY_DISPLAY);
-        block.setData("streamX", x);
-        block.setData("streamY", y);
+        this.registerStreamSprite(block, x, y);
         block.setDepth(depthForGridCell(x, y, PROP_LAYER));
       }
     }
@@ -1279,8 +1276,7 @@ export class IsometricScene extends Phaser.Scene {
       fitDisplay(propSprite, propSize);
     }
     if (zoneId === "archipelago") {
-      propSprite.setData("streamX", x);
-      propSprite.setData("streamY", y);
+      this.registerStreamSprite(propSprite, x, y);
     }
     propSprite.setDepth(depthForGridCell(x, y, PROP_LAYER));
   }
@@ -1461,8 +1457,7 @@ export class IsometricScene extends Phaser.Scene {
     fitDisplay(boat, PROP_DISPLAY["prop-boat"]);
     boat.setDepth(depthForGridCell(pad.x, pad.y, PROP_LAYER));
     if (zone.id === "archipelago") {
-      boat.setData("streamX", pad.x);
-      boat.setData("streamY", pad.y);
+      this.registerStreamSprite(boat, pad.x, pad.y);
     }
     this.dockBoat = boat;
   }

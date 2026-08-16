@@ -240,14 +240,24 @@ export function islandIndexAtOrigin(originX: number, originY: number): number {
   return row * ISLAND_COLS + col;
 }
 
+/**
+ * Templates are pure functions of layout constants; cache them so per-frame
+ * callers (dock prompts, encounter checks) never re-construct them (#194).
+ */
+const islandTemplateCache = new Map<number, IslandTemplate>();
+
 export function islandTemplateAtIndex(index: number): IslandTemplate {
+  const cached = islandTemplateCache.get(index);
+  if (cached) {
+    return cached;
+  }
   const col = index % ISLAND_COLS;
   const row = Math.floor(index / ISLAND_COLS);
   const x = ISLAND_ORIGIN_X + col * ISLAND_SPACING;
   const y = ISLAND_ORIGIN_Y + row * ISLAND_SPACING;
   const biome = BIOMES[index % BIOMES.length]!;
   const dockX = x + DOCK_LOCAL_X;
-  return {
+  const template: IslandTemplate = {
     index,
     biome,
     row,
@@ -258,10 +268,23 @@ export function islandTemplateAtIndex(index: number): IslandTemplate {
     pier: { x: dockX, y: y + PIER_LOCAL_Y },
     embarkWater: { x: dockX, y: y + EMBARK_LOCAL_Y },
   };
+  islandTemplateCache.set(index, template);
+  return template;
 }
 
-/** All island templates whose footprint fits in `[0, maxWidth)`. */
-export function listIslandTemplates(maxWidth: number): IslandTemplate[] {
+const islandListCache = new Map<number, readonly IslandTemplate[]>();
+
+/**
+ * All island templates whose footprint fits in `[0, maxWidth)`. Cached per
+ * width — callers treat the result as read-only (#194).
+ */
+export function listIslandTemplates(
+  maxWidth: number,
+): readonly IslandTemplate[] {
+  const cached = islandListCache.get(maxWidth);
+  if (cached) {
+    return cached;
+  }
   const out: IslandTemplate[] = [];
   const total = ISLAND_ROWS * ISLAND_COLS;
   for (let i = 0; i < total; i++) {
@@ -281,6 +304,7 @@ export function listIslandTemplates(maxWidth: number): IslandTemplate[] {
     }
     out.push(island);
   }
+  islandListCache.set(maxWidth, out);
   return out;
 }
 
