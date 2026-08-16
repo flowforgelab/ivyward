@@ -3,6 +3,7 @@ import "./style.css";
 import { initQuestProgress } from "./game/story/questProgress";
 import { createGame } from "./game/Game";
 import { initStatusPanelControls } from "./game/ui/statusPanel";
+import { shouldResetHostSave } from "./game/world/bootParams";
 import {
   clearJoinParamAndReload,
   parseInviteParam,
@@ -55,8 +56,9 @@ if (inviteResult.status === "invalid") {
   showInvalidInviteScreen();
 } else {
   const params = new URLSearchParams(window.location.search);
-  // Only honor ?new= when there is no broken invite claiming "nothing changed".
-  if (params.has("new")) {
+  // Only honor ?new= when the URL carries no invite at all — a shared ?join=
+  // link with &new=1 appended must not wipe the recipient's save (#189).
+  if (shouldResetHostSave(inviteResult.status, params)) {
     clearHostSave();
     consumeNewParam();
   }
