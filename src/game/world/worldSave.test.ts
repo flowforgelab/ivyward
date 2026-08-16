@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearHostSave, loadHostSave } from "./worldSave";
+import { clearHostSave, loadHostSave, updateHostPosition } from "./worldSave";
+import { flushPendingHostSave } from "./worldSaveSchedule";
+import { setVisitorMode } from "./worldSession";
+import { STARTING_ZONE_ID as SPAWN_ZONE } from "./zones";
 import { exportWorldSnapshot, type WorldSnapshot } from "./worldSnapshot";
 import { STARTING_ZONE_ID } from "./zones";
 
@@ -133,6 +136,23 @@ describe("loadHostSave repair path (#190)", () => {
 
     expect(loaded).toEqual(snapshot);
     expect(localStorage.getItem(BACKUP_STORAGE_KEY)).toBeNull();
+  });
+
+  it("never persists on flush in visitor mode (#191)", () => {
+    setVisitorMode(true, "host");
+    try {
+      updateHostPosition(SPAWN_ZONE, 3, 7);
+      flushPendingHostSave();
+      expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    } finally {
+      setVisitorMode(false);
+    }
+  });
+
+  it("persists a pending change on flush for the host (#191)", () => {
+    updateHostPosition(SPAWN_ZONE, 3, 7);
+    flushPendingHostSave();
+    expect(localStorage.getItem(STORAGE_KEY)).not.toBeNull();
   });
 
   it("clearHostSave leaves the backup key intact", () => {

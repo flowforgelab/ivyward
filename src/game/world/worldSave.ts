@@ -9,6 +9,7 @@ import {
 } from "./worldSnapshot";
 import { isVisitorMode } from "./worldSession";
 import {
+  flushPendingHostSave,
   registerWorldPersistHandler,
   resumeHostPersist,
   scheduleHostSave,
@@ -69,6 +70,17 @@ export function persistHostSave(): void {
 }
 
 registerWorldPersistHandler(persistHostSave);
+
+// Closing or backgrounding the tab must not drop the pending debounce window
+// (#191). persistHostSave itself keeps visitor mode from ever writing.
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushPendingHostSave);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      flushPendingHostSave();
+    }
+  });
+}
 
 export function clearHostSave(): void {
   try {
