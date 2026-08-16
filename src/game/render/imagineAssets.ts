@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import type Phaser from "phaser";
 
 export const IMAGINE_ATLAS_KEY = "imagine-atlas";
 
@@ -20,49 +20,37 @@ export function preloadImagineAssets(scene: Phaser.Scene): void {
 }
 
 /**
- * Promote atlas frames to top-level texture keys so existing `spriteKey` /
- * `player-*-0` / `floor-*` lookups keep working without call-site changes.
+ * True when the packed atlas carries this key as a frame.
  */
-export function promoteImagineAtlasFrames(scene: Phaser.Scene): void {
-  if (!scene.textures.exists(IMAGINE_ATLAS_KEY)) {
-    return;
-  }
+export function hasImagineFrame(
+  scene: Phaser.Scene,
+  key: string,
+): boolean {
+  return (
+    scene.textures.exists(IMAGINE_ATLAS_KEY) &&
+    scene.textures.get(IMAGINE_ATLAS_KEY).has(key)
+  );
+}
 
-  const atlas = scene.textures.get(IMAGINE_ATLAS_KEY);
-  const sourceImage = atlas.getSourceImage() as
-    | HTMLImageElement
-    | HTMLCanvasElement;
-  if (!sourceImage) {
-    return;
-  }
+/**
+ * Texture arguments for a logical key: the packed atlas frame when it exists
+ * (keeps WebGL batching on one texture, #193), else the standalone key
+ * (individually loaded PNGs and procedural fallbacks). Spread into
+ * `add.image` / `add.sprite` / `setTexture`.
+ */
+export function imagineTexture(
+  scene: Phaser.Scene,
+  key: string,
+): [string, string | undefined] {
+  return hasImagineFrame(scene, key)
+    ? [IMAGINE_ATLAS_KEY, key]
+    : [key, undefined];
+}
 
-  for (const frameName of atlas.getFrameNames()) {
-    if (frameName === "__BASE" || scene.textures.exists(frameName)) {
-      continue;
-    }
-    const frame = atlas.get(frameName);
-    const canvas = document.createElement("canvas");
-    canvas.width = frame.cutWidth;
-    canvas.height = frame.cutHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      continue;
-    }
-    ctx.drawImage(
-      sourceImage,
-      frame.cutX,
-      frame.cutY,
-      frame.cutWidth,
-      frame.cutHeight,
-      0,
-      0,
-      frame.cutWidth,
-      frame.cutHeight,
-    );
-    scene.textures.addCanvas(frameName, canvas);
-  }
-
-  // Drop the packed atlas once frames are promoted — keeps cold-load request
-  // consolidation without holding both atlas + per-key textures in GPU memory.
-  scene.textures.remove(IMAGINE_ATLAS_KEY);
+/**
+ * True when the key is renderable at all — as an atlas frame or a standalone
+ * texture. Procedural ensure* helpers use this to skip generation.
+ */
+export function hasWorldTexture(scene: Phaser.Scene, key: string): boolean {
+  return hasImagineFrame(scene, key) || scene.textures.exists(key);
 }

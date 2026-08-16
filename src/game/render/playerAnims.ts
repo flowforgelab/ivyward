@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { PLAYER_DISPLAY, fitDisplay } from "./displaySizes";
+import { hasImagineFrame, imagineTexture } from "./imagineAssets";
 import { WALK_FRAME_COUNT, walkStrideFrame } from "./playerWalk";
 
 const FRAME_WIDTH = 48;
@@ -80,7 +81,7 @@ function drawTrainer(
 
 function generateFrame(scene: Phaser.Scene, facing: Facing, frame: number): void {
   const key = textureKey(facing, frame);
-  if (scene.textures.exists(key)) {
+  if (hasImagineFrame(scene, key) || scene.textures.exists(key)) {
     return;
   }
   const g = scene.make.graphics({ x: 0, y: 0 });
@@ -90,11 +91,7 @@ function generateFrame(scene: Phaser.Scene, facing: Facing, frame: number): void
 }
 
 function isImagineTexture(scene: Phaser.Scene, key: string): boolean {
-  if (!scene.textures.exists(key)) {
-    return false;
-  }
-  const src = scene.textures.get(key).getSourceImage() as { width?: number };
-  return Boolean(src.width && src.width > FRAME_WIDTH);
+  return hasImagineFrame(scene, key);
 }
 
 export function getPlayerIdleTextureKey(facing: Facing = "south"): string {
@@ -112,9 +109,13 @@ export function ensurePlayerAnims(scene: Phaser.Scene): void {
 
     const idleKey = `player-idle-${facing}`;
     if (!scene.anims.exists(idleKey)) {
+      const [idleTexture, idleFrame] = imagineTexture(
+        scene,
+        textureKey(facing, 0),
+      );
       scene.anims.create({
         key: idleKey,
-        frames: [{ key: textureKey(facing, 0) }],
+        frames: [{ key: idleTexture, frame: idleFrame }],
         frameRate: 1,
         repeat: -1,
       });
@@ -127,9 +128,13 @@ export function ensurePlayerAnims(scene: Phaser.Scene): void {
     const walkFrames = Array.from({ length: walkCount }, (_, i) => i + 1);
     scene.anims.create({
       key: walkKey,
-      frames: walkFrames.map((frame) => ({
-        key: textureKey(facing, frame),
-      })),
+      frames: walkFrames.map((frame) => {
+        const [texture, atlasFrame] = imagineTexture(
+          scene,
+          textureKey(facing, frame),
+        );
+        return { key: texture, frame: atlasFrame };
+      }),
       frameRate: 8,
       repeat: -1,
     });
@@ -148,8 +153,12 @@ export function applyPlayerPose(
     ? walkStrideFrame(walkPhase, WALK_FRAME_COUNT[facing])
     : 0;
   const key = textureKey(facing, frame);
-  if (sprite.texture.key !== key) {
-    sprite.setTexture(key);
+  const [texture, atlasFrame] = imagineTexture(sprite.scene, key);
+  if (
+    sprite.texture.key !== texture ||
+    (atlasFrame !== undefined && sprite.frame.name !== atlasFrame)
+  ) {
+    sprite.setTexture(texture, atlasFrame);
   }
   fitDisplay(sprite, PLAYER_DISPLAY);
 }

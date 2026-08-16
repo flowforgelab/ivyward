@@ -1,3 +1,4 @@
+import { hasWorldTexture } from "../render/imagineAssets";
 import Phaser from "phaser";
 import { CREATURES } from "./catalog";
 
@@ -673,8 +674,9 @@ const CREATURE_DRAWERS: Record<string, CreatureDrawer> = {
 
 export function ensureCreatureTextures(scene: Phaser.Scene): void {
   for (const creature of CREATURES) {
-    // Prefer Imagine PNGs loaded in PreloadScene; procedural only as fallback.
-    if (scene.textures.exists(creature.spriteKey)) {
+    // Prefer Imagine art (atlas frame or standalone PNG); procedural only as
+    // fallback.
+    if (hasWorldTexture(scene, creature.spriteKey)) {
       continue;
     }
 

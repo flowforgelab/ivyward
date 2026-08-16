@@ -1,3 +1,4 @@
+import { imagineTexture } from "../render/imagineAssets";
 import Phaser from "phaser";
 import {
   ensureGroveMusic,
@@ -927,7 +928,7 @@ export class IsometricScene extends Phaser.Scene {
     recordQuestEvent({ type: "enter_zone", zoneId });
 
     this.player = this.add
-      .sprite(0, 0, `player-${this.playerFacing}-0`)
+      .sprite(0, 0, ...imagineTexture(this, `player-${this.playerFacing}-0`))
       .setOrigin(0.5, 1);
     bindPlayerDisplaySize(this.player);
     this.syncPlayerToGrid();
@@ -1141,7 +1142,7 @@ export class IsometricScene extends Phaser.Scene {
         }
 
         const tile = this.add
-          .image(screen.x, screen.y, textureKey)
+          .image(screen.x, screen.y, ...imagineTexture(this, textureKey))
           .setOrigin(0.5, 0.5);
         fitDisplay(tile, FLOOR_DISPLAY);
         tile.setData("streamX", x);
@@ -1237,7 +1238,7 @@ export class IsometricScene extends Phaser.Scene {
         const boundaryKey = getBoundaryTextureKey(zone.id);
 
         const block = this.add
-          .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, boundaryKey)
+          .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, ...imagineTexture(this, boundaryKey))
           .setOrigin(0.5, 1);
         fitDisplay(block, BOUNDARY_DISPLAY);
         block.setData("streamX", x);
@@ -1271,7 +1272,7 @@ export class IsometricScene extends Phaser.Scene {
     const screen = this.toScreen(x, y);
     const key = propTextureKey(kind, kind === "gate" ? gateOpen : true);
     const propSprite = this.add
-      .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, key)
+      .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, ...imagineTexture(this, key))
       .setOrigin(0.5, 1);
     const propSize = PROP_DISPLAY[key];
     if (propSize) {
@@ -1455,7 +1456,7 @@ export class IsometricScene extends Phaser.Scene {
     }
     const screen = this.toScreen(pad.x, pad.y);
     const boat = this.add
-      .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, getBoatTextureKey())
+      .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, ...imagineTexture(this, getBoatTextureKey()))
       .setOrigin(0.5, 1);
     fitDisplay(boat, PROP_DISPLAY["prop-boat"]);
     boat.setDepth(depthForGridCell(pad.x, pad.y, PROP_LAYER));
@@ -1725,7 +1726,7 @@ export class IsometricScene extends Phaser.Scene {
     }
     if (!this.sailingBoat) {
       this.sailingBoat = this.add
-        .image(screenX, baseY, getBoatTextureKey())
+        .image(screenX, baseY, ...imagineTexture(this, getBoatTextureKey()))
         .setOrigin(0.5, 1);
       fitDisplay(this.sailingBoat, PROP_DISPLAY["prop-boat"]);
     } else {

@@ -62,23 +62,26 @@ export function fitContainDisplay(
 export function ensureTrimmedTexture(
   scene: Phaser.Scene,
   sourceKey: string,
-): string {
-  const trimmedKey = `${sourceKey}__trim`;
+  sourceFrame?: string,
+): [string, string | undefined] {
+  const logicalKey = sourceFrame ?? sourceKey;
+  const source: [string, string | undefined] = [sourceKey, sourceFrame];
+  const trimmedKey = `${logicalKey}__trim`;
   if (scene.textures.exists(trimmedKey)) {
-    return trimmedKey;
+    return [trimmedKey, undefined];
   }
   if (!scene.textures.exists(sourceKey)) {
-    return sourceKey;
+    return source;
   }
 
   const texture = scene.textures.get(sourceKey);
-  const frame = texture.get();
+  const frame = texture.get(sourceFrame);
   const sourceImage = texture.getSourceImage() as
     | HTMLImageElement
     | HTMLCanvasElement
     | null;
   if (!sourceImage || frame.cutWidth < 1 || frame.cutHeight < 1) {
-    return sourceKey;
+    return source;
   }
 
   const scratch = document.createElement("canvas");
@@ -86,7 +89,7 @@ export function ensureTrimmedTexture(
   scratch.height = frame.cutHeight;
   const scratchCtx = scratch.getContext("2d");
   if (!scratchCtx) {
-    return sourceKey;
+    return source;
   }
   scratchCtx.drawImage(
     sourceImage,
@@ -121,7 +124,7 @@ export function ensureTrimmedTexture(
     }
   }
   if (maxX < minX || maxY < minY) {
-    return sourceKey;
+    return source;
   }
 
   const pad = 2;
@@ -137,9 +140,9 @@ export function ensureTrimmedTexture(
   out.height = cropH;
   const outCtx = out.getContext("2d");
   if (!outCtx) {
-    return sourceKey;
+    return source;
   }
   outCtx.drawImage(scratch, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
   scene.textures.addCanvas(trimmedKey, out);
-  return trimmedKey;
+  return [trimmedKey, undefined];
 }

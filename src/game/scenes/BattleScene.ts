@@ -7,6 +7,7 @@ import {
 } from "../creatures/party";
 import { ensureCreatureTextures } from "../creatures/sprites";
 import { resolveCreaturePoseTexture } from "../creatures/creaturePoses";
+import { hasWorldTexture, imagineTexture } from "../render/imagineAssets";
 import {
   BATTLE_CREATURE_DISPLAY,
   BATTLE_PLAYER_DISPLAY,
@@ -204,7 +205,7 @@ export class BattleScene extends Phaser.Scene {
         .image(
           cx + 116,
           142,
-          resolveCreaturePoseTexture(
+          ...resolveCreaturePoseTexture(
             this,
             getCreatureDefinition(this.wildCreatureId).spriteKey,
             "battle",
@@ -214,7 +215,7 @@ export class BattleScene extends Phaser.Scene {
       BATTLE_CREATURE_DISPLAY,
     );
     this.playerSprite = fitDisplay(
-      this.add.image(cx - 118, 238, this.getPlayerSpriteKey()).setDepth(2),
+      this.add.image(cx - 118, 238, ...this.getPlayerSpriteTexture()).setDepth(2),
       this.getPlayerBattleDisplay(),
     );
     this.syncPlayerBattleFacing();
@@ -256,21 +257,21 @@ export class BattleScene extends Phaser.Scene {
     const w = DESIGN_SIZE;
     const h = DESIGN_SIZE;
     const hasImagine =
-      this.textures.exists("arena-sky") &&
-      this.textures.exists("arena-hills") &&
-      this.textures.exists("arena-platform");
+      hasWorldTexture(this, "arena-sky") &&
+      hasWorldTexture(this, "arena-hills") &&
+      hasWorldTexture(this, "arena-platform");
 
     if (hasImagine) {
       this.add
-        .image(w / 2, h / 2, "arena-sky")
+        .image(w / 2, h / 2, ...imagineTexture(this, "arena-sky"))
         .setDisplaySize(w, h)
         .setDepth(-12);
       this.add
-        .image(w / 2, h / 2, "arena-hills")
+        .image(w / 2, h / 2, ...imagineTexture(this, "arena-hills"))
         .setDisplaySize(w, h)
         .setDepth(-11);
       this.add
-        .image(w / 2, h / 2, "arena-platform")
+        .image(w / 2, h / 2, ...imagineTexture(this, "arena-platform"))
         .setDisplaySize(w, h)
         .setDepth(-10);
       return;
@@ -296,9 +297,9 @@ export class BattleScene extends Phaser.Scene {
     g.strokeEllipse(w / 2, 244, w * 0.74, 62);
   }
 
-  private getPlayerSpriteKey(): string {
+  private getPlayerSpriteTexture(): [string, string | undefined] {
     if (this.resolvePartyIndex() < 0) {
-      return "player-south-0";
+      return imagineTexture(this, "player-south-0");
     }
     const spriteKey = getCreatureDefinition(
       getActiveCreatures()[this.partyInstanceIndex].definitionId,
@@ -628,7 +629,7 @@ export class BattleScene extends Phaser.Scene {
     this.player = this.combatantFromWanderer(buildArmedWanderer(weaponId));
     this.hideWandererFallbackMenu();
     this.refreshHp();
-    this.playerSprite.setTexture(this.getPlayerSpriteKey());
+    this.playerSprite.setTexture(...this.getPlayerSpriteTexture());
     fitDisplay(this.playerSprite, this.getPlayerBattleDisplay());
     this.syncPlayerBattleFacing();
     this.log(`${this.player.name} steps up to fight!`);
@@ -654,7 +655,7 @@ export class BattleScene extends Phaser.Scene {
     this.forcedSwitch = false;
     this.hideSwitchMenu();
     this.refreshHp();
-    this.playerSprite.setTexture(this.getPlayerSpriteKey());
+    this.playerSprite.setTexture(...this.getPlayerSpriteTexture());
     fitDisplay(this.playerSprite, this.getPlayerBattleDisplay());
     this.syncPlayerBattleFacing();
     this.log(`Go, ${this.player.name}!`);

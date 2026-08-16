@@ -92,11 +92,11 @@ export class EncounterScene extends Phaser.Scene {
       18,
     );
 
-    const poseKey = resolveCreaturePoseTexture(this, def.spriteKey, "encounter");
-    const trimmedKey = ensureTrimmedTexture(this, poseKey);
+    const pose = resolveCreaturePoseTexture(this, def.spriteKey, "encounter");
+    const trimmed = ensureTrimmedTexture(this, ...pose);
     // Sit in the upper panel: leave clear air above the title at panelY+70.
     fitContainDisplay(
-      this.add.image(panelX, panelY - 90, trimmedKey).setOrigin(0.5),
+      this.add.image(panelX, panelY - 90, ...trimmed).setOrigin(0.5),
       ENCOUNTER_CREATURE_DISPLAY,
     );
 

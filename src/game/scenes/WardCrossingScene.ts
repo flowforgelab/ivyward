@@ -126,7 +126,7 @@ export class WardCrossingScene extends Phaser.Scene {
             getCreatureDefinition(unit.definitionId).spriteKey,
             "idle",
           );
-          const sprite = this.add.image(x, y + 6, pose).setOrigin(0.5, 1);
+          const sprite = this.add.image(x, y + 6, ...pose).setOrigin(0.5, 1);
           fitDisplay(sprite, { width: 42, height: 46 });
           const hp = this.add
             .text(x, y + CELL / 2 - 14, `${unit.hp}`, {
