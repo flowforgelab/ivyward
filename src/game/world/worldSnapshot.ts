@@ -627,7 +627,15 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
-  if (!isFiniteNumber(s.nextInstanceId) || s.nextInstanceId < 0) return false;
+  // Safe integer only: the mint appends this counter into `c-<n>` ids, so a
+  // fractional or precision-lossy value can duplicate an accepted id (#192).
+  if (
+    typeof s.nextInstanceId !== "number" ||
+    !Number.isSafeInteger(s.nextInstanceId) ||
+    s.nextInstanceId < 0
+  ) {
+    return false;
+  }
   if (!isValidQuestProgress(s.questProgress)) return false;
   if (!isValidCountMap(s.materials) || !isValidCountMap(s.items)) return false;
   return true;
@@ -644,8 +652,14 @@ function nextInstanceIdAfter(
   let next = saved;
   for (const { instanceId } of party) {
     const match = /^c-(\d+)$/.exec(instanceId);
-    if (match) {
-      next = Math.max(next, Number(match[1]) + 1);
+    if (!match) {
+      continue;
+    }
+    const n = Number(match[1]);
+    // Beyond-safe-integer suffixes lose precision (n + 1 === n) and can never
+    // be reached by the safe-integer mint counter; ignore them for the floor.
+    if (Number.isSafeInteger(n) && Number.isSafeInteger(n + 1)) {
+      next = Math.max(next, n + 1);
     }
   }
   return next;

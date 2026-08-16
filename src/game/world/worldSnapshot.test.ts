@@ -773,3 +773,22 @@ describe("party member validation hardening (#192)", () => {
     expect(getNextInstanceId()).toBe(3);
   });
 });
+
+describe("mint-floor integrity (#192 gate finding)", () => {
+  it("rejects a non-integer nextInstanceId", () => {
+    expect(isValidWorldSnapshot(validSnapshot({ nextInstanceId: 2.5 }))).toBe(
+      false,
+    );
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ nextInstanceId: 9007199254740993 }),
+      ),
+    ).toBe(false);
+  });
+
+  it("ignores beyond-safe-integer id suffixes for the mint floor", () => {
+    const member = partyMember({ instanceId: "c-9007199254740992" });
+    applyWorldSnapshot(validSnapshot({ party: [member], nextInstanceId: 4 }));
+    expect(getNextInstanceId()).toBe(4);
+  });
+});
