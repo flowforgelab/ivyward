@@ -61,6 +61,7 @@ describe("loadHostSave repair path (#190)", () => {
     expect(loaded?.party).toEqual(snapshot.party);
     expect(loaded?.materials).toEqual(snapshot.materials);
     expect(loaded?.questProgress).toEqual(snapshot.questProgress);
+    expect(loaded?.achievements).toEqual(snapshot.achievements);
     expect(localStorage.getItem(BACKUP_STORAGE_KEY)).toBeNull();
   });
 
@@ -75,6 +76,29 @@ describe("loadHostSave repair path (#190)", () => {
     expect(loaded).not.toBeNull();
     expect(loaded?.position.zoneId).toBe(STARTING_ZONE_ID);
     expect(loaded?.sailing).toBe(false);
+  });
+
+  it("quarantines non-position corruption instead of normalizing it", () => {
+    const snapshot = storedSnapshot({ zoneId: STARTING_ZONE_ID, x: 3, y: 7 });
+    snapshot.sailing = "garbage";
+    const raw = JSON.stringify(snapshot);
+    localStorage.setItem(STORAGE_KEY, raw);
+
+    const loaded = loadHostSave();
+
+    expect(loaded).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(BACKUP_STORAGE_KEY)).toBe(raw);
+  });
+
+  it("quarantines non-object JSON payloads", () => {
+    for (const raw of ["null", "[3]", "42"]) {
+      localStorage.clear();
+      localStorage.setItem(STORAGE_KEY, raw);
+      expect(loadHostSave()).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+      expect(localStorage.getItem(BACKUP_STORAGE_KEY)).toBe(raw);
+    }
   });
 
   it("backs up an unrepairable save instead of deleting it", () => {
@@ -116,4 +140,88 @@ describe("loadHostSave repair path (#190)", () => {
     clearHostSave();
     expect(localStorage.getItem(BACKUP_STORAGE_KEY)).toBe("keep-me");
   });
+
+  it("frees the primary slot when quota blocks the backup write", () => {
+    // Simulate quota: the backup write throws while the primary is present
+    // and succeeds once the primary slot has been freed.
+    const base = localStorage;
+    let primaryPresent = true;
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      writable: true,
+      value: {
+        ...baseStorageShim(base),
+        setItem: (key: string, value: string) => {
+          if (key === BACKUP_STORAGE_KEY && primaryPresent) {
+            throw new Error("QuotaExceededError");
+          }
+          base.setItem(key, value);
+        },
+        removeItem: (key: string) => {
+          if (key === STORAGE_KEY) {
+            primaryPresent = false;
+          }
+          base.removeItem(key);
+        },
+      },
+    });
+    try {
+      const raw = '{"broken": tru';
+      base.setItem(STORAGE_KEY, raw);
+
+      expect(loadHostSave()).toBeNull();
+      expect(base.getItem(STORAGE_KEY)).toBeNull();
+      expect(base.getItem(BACKUP_STORAGE_KEY)).toBe(raw);
+    } finally {
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        writable: true,
+        value: base,
+      });
+    }
+  });
+
+  it("restores the primary key when the backup write is impossible", () => {
+    const base = localStorage;
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      writable: true,
+      value: {
+        ...baseStorageShim(base),
+        setItem: (key: string, value: string) => {
+          if (key === BACKUP_STORAGE_KEY) {
+            throw new Error("QuotaExceededError");
+          }
+          base.setItem(key, value);
+        },
+      },
+    });
+    try {
+      const raw = '{"broken": tru';
+      base.setItem(STORAGE_KEY, raw);
+
+      expect(loadHostSave()).toBeNull();
+      expect(base.getItem(STORAGE_KEY)).toBe(raw);
+      expect(base.getItem(BACKUP_STORAGE_KEY)).toBeNull();
+    } finally {
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        writable: true,
+        value: base,
+      });
+    }
+  });
 });
+
+function baseStorageShim(base: Storage): Storage {
+  return {
+    get length() {
+      return base.length;
+    },
+    clear: () => base.clear(),
+    getItem: (key: string) => base.getItem(key),
+    key: (index: number) => base.key(index),
+    removeItem: (key: string) => base.removeItem(key),
+    setItem: (key: string, value: string) => base.setItem(key, value),
+  };
+}

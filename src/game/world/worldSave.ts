@@ -91,34 +91,56 @@ export function resetHostGame(): void {
 /**
  * Position is the only structurally fragile snapshot field — map layout
  * changes have invalidated saved positions twice before (see the legacy
- * repair functions). Retry validation with the default spawn: first position
- * alone, then also grounding a mid-sail flag that cannot hold at a land
- * spawn. Anything else stays unrepairable (#190).
+ * repair functions). The repair must be attributable to position alone: a
+ * candidate replacing only the position must validate, otherwise the save is
+ * quarantined instead (#190 fail-safe rule).
  */
 function repairWithDefaultSpawn(parsed: unknown): WorldSnapshot | null {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return null;
   }
-  // The default spawn is land, so a mid-sail flag can never hold there —
-  // ground it along with the position (the validator would otherwise accept
-  // sailing at the grove spawn and load a stuck sail-on-land state).
   const respawned = {
     ...(parsed as Record<string, unknown>),
     position: { ...DEFAULT_HOST_POSITION },
-    sailing: false,
   };
-  if (isValidWorldSnapshot(respawned)) {
+  if (!isValidWorldSnapshot(respawned)) {
+    return null;
+  }
+  if (respawned.sailing !== true) {
     return respawned;
   }
-  return null;
+  // The land spawn cannot hold a mid-sail flag — the validator would accept
+  // it and load a stuck sail-on-land state. Grounding a legitimate `true` is
+  // coherence, not corruption-masking (wrong-typed sailing already failed the
+  // position-only candidate above).
+  const grounded = { ...respawned, sailing: false };
+  return isValidWorldSnapshot(grounded) ? grounded : null;
 }
 
-function backupRawSave(raw: string): void {
+/**
+ * Move the raw payload to the backup key so it stays recoverable, then clear
+ * the live keys. Under quota pressure the primary slot is freed first (the
+ * payload is the same size); if the backup write still fails, the payload is
+ * restored to the primary key rather than lost — the next load repeats the
+ * same deterministic path.
+ */
+function quarantineRawSave(raw: string): void {
   try {
     localStorage.setItem(BACKUP_STORAGE_KEY, raw);
   } catch {
-    // ponytail: ignore quota/private-mode failures
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(BACKUP_STORAGE_KEY, raw);
+    } catch {
+      try {
+        localStorage.setItem(STORAGE_KEY, raw);
+      } catch {
+        // ponytail: storage wholly unwritable; nothing left to preserve
+      }
+      return;
+    }
   }
+  clearHostSave();
 }
 
 export function loadHostSave(): WorldSnapshot | null {
@@ -140,14 +162,14 @@ export function loadHostSave(): WorldSnapshot | null {
       return repaired;
     }
     // Unrepairable: keep the raw payload recoverable instead of deleting it.
-    backupRawSave(raw);
-    clearHostSave();
+    quarantineRawSave(raw);
     return null;
   } catch {
     if (raw) {
-      backupRawSave(raw);
+      quarantineRawSave(raw);
+    } else {
+      clearHostSave();
     }
-    clearHostSave();
     return null;
   }
 }
