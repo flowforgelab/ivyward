@@ -215,6 +215,14 @@ function isValidCountMap(value: unknown): value is Record<string, number> {
 
 const VALID_FOLKLORE_TYPES = new Set<string>(FOLKLORE_TYPES);
 
+/**
+ * Ceiling for the mint counter and `c-<n>` id suffixes. Legitimate counters
+ * grow by one per befriend/fusion and stay far below this; anything above is
+ * a crafted save that could force the floor computation into duplicate-id
+ * territory at the 2^53 precision boundary (#192).
+ */
+const MAX_INSTANCE_COUNTER = 1_000_000_000;
+
 function isValidMoveDefinition(value: unknown): boolean {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -247,6 +255,12 @@ function isValidPartyMember(value: unknown): boolean {
     typeof creature.instanceId !== "string" ||
     creature.instanceId.length === 0
   ) {
+    return false;
+  }
+  // Mint-pattern ids above the counter ceiling can only come from crafted
+  // saves and would push the mint floor into duplicate territory (#192).
+  const mintedId = /^c-(\d+)$/.exec(creature.instanceId);
+  if (mintedId && Number(mintedId[1]) > MAX_INSTANCE_COUNTER) {
     return false;
   }
   if (
@@ -632,7 +646,8 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   if (
     typeof s.nextInstanceId !== "number" ||
     !Number.isSafeInteger(s.nextInstanceId) ||
-    s.nextInstanceId < 0
+    s.nextInstanceId < 0 ||
+    s.nextInstanceId > MAX_INSTANCE_COUNTER
   ) {
     return false;
   }
@@ -656,9 +671,9 @@ function nextInstanceIdAfter(
       continue;
     }
     const n = Number(match[1]);
-    // Beyond-safe-integer suffixes lose precision (n + 1 === n) and can never
-    // be reached by the safe-integer mint counter; ignore them for the floor.
-    if (Number.isSafeInteger(n) && Number.isSafeInteger(n + 1)) {
+    // Validation caps accepted suffixes at MAX_INSTANCE_COUNTER; the bound
+    // here keeps the floor safe even for callers that skip validation.
+    if (Number.isSafeInteger(n) && n <= MAX_INSTANCE_COUNTER) {
       next = Math.max(next, n + 1);
     }
   }

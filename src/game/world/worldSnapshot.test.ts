@@ -786,9 +786,45 @@ describe("mint-floor integrity (#192 gate finding)", () => {
     ).toBe(false);
   });
 
-  it("ignores beyond-safe-integer id suffixes for the mint floor", () => {
+  it("rejects beyond-safe-integer id suffixes at validation", () => {
     const member = partyMember({ instanceId: "c-9007199254740992" });
-    applyWorldSnapshot(validSnapshot({ party: [member], nextInstanceId: 4 }));
-    expect(getNextInstanceId()).toBe(4);
+    expect(
+      isValidWorldSnapshot(validSnapshot({ party: [member] })),
+    ).toBe(false);
+  });
+});
+
+describe("mint counter ceiling (#192 round-2 finding)", () => {
+  it("rejects nextInstanceId above the counter ceiling", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ nextInstanceId: 1_000_000_001 })),
+    ).toBe(false);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ nextInstanceId: 9007199254740991 }),
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects mint-pattern instance ids above the counter ceiling", () => {
+    const boundary = partyMember({ instanceId: "c-9007199254740991" });
+    expect(
+      isValidWorldSnapshot(validSnapshot({ party: [boundary] })),
+    ).toBe(false);
+    const overCap = partyMember({ instanceId: "c-1000000001" });
+    expect(isValidWorldSnapshot(validSnapshot({ party: [overCap] }))).toBe(
+      false,
+    );
+  });
+
+  it("accepts and advances past a large but legitimate suffix", () => {
+    const member = partyMember({ instanceId: "c-999999999" });
+    const snapshot = validSnapshot({
+      party: [member],
+      nextInstanceId: 5,
+    });
+    expect(isValidWorldSnapshot(snapshot)).toBe(true);
+    applyWorldSnapshot(snapshot);
+    expect(getNextInstanceId()).toBe(1_000_000_000);
   });
 });
