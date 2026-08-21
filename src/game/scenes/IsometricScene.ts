@@ -900,6 +900,10 @@ export class IsometricScene extends Phaser.Scene {
     if (this.currentZoneId !== "archipelago" || isFirstIslandLanded()) {
       return;
     }
+    // Dock tiles count as island positions; only on-foot stands complete the Next.
+    if (isSailing()) {
+      return;
+    }
     if (!isArchipelagoIslandPosition(this.playerGridX, this.playerGridY)) {
       return;
     }

@@ -878,6 +878,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setFirstIslandLanded(snapshot.firstIslandLanded === true, false);
   if (
     !worldState.firstIslandLanded &&
+    snapshot.sailing !== true &&
     snapshot.position.zoneId === "archipelago" &&
     isArchipelagoIslandPosition(snapshot.position.x, snapshot.position.y)
   ) {
