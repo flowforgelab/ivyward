@@ -34,7 +34,11 @@ export function hpPipFillCount(
   if (currentHp >= maxHp) {
     return segments;
   }
-  return Math.max(1, Math.ceil((currentHp / maxHp) * segments));
+  // Hurt must never look identical to full (ceil can map >80% to all segments).
+  return Math.min(
+    segments - 1,
+    Math.max(1, Math.ceil((currentHp / maxHp) * segments)),
+  );
 }
 
 function shortName(creature: CreatureInstance): string {

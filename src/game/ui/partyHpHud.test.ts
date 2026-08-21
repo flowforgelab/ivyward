@@ -34,6 +34,11 @@ describe("hpPipState / hpPipFillCount", () => {
     expect(hpPipFillCount(28, 28)).toBe(HP_PIP_SEGMENTS);
     expect(hpPipFillCount(0, 28)).toBe(0);
   });
+
+  it("keeps near-full hurt below a full pip row", () => {
+    expect(hpPipFillCount(27, 28)).toBe(HP_PIP_SEGMENTS - 1);
+    expect(hpPipState(27, 28)).toBe("hurt");
+  });
 });
 
 describe("renderPartyHpHud", () => {
