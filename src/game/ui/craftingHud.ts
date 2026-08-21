@@ -1,6 +1,7 @@
 import { getItemName, getMaterialName } from "../inventory/materials";
 import { appendMaterialVisual } from "./materialIcon";
 import { openRecipes } from "./recipePanel";
+import { popOverlay, pushOverlay } from "./overlayStack";
 import {
   addMaterial,
   canAddItem,
@@ -56,9 +57,11 @@ export function showShrineCraftingHud(options: {
     });
   }
   shrineHost.hidden = false;
+  pushOverlay("craft-hud", () => hideShrineCraftingHud(false));
 }
 
 export function hideShrineCraftingHud(destroy = false): void {
+  popOverlay("craft-hud");
   if (destroy) {
     shrineHud?.destroy();
     shrineHud = null;
@@ -82,6 +85,7 @@ type HudOptions = {
   interactive: boolean;
   onCrafted?: (name: string, count: number) => void;
   onInventoryChange?: () => void;
+  onClose?: () => void;
 };
 
 function ownedMaterials(): { id: string; name: string; count: number }[] {
@@ -383,7 +387,20 @@ export function mountCraftingHud(
       event.stopPropagation();
       openRecipes();
     });
-    header.appendChild(recipesBtn);
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "crafting-close-btn";
+    closeBtn.setAttribute("aria-label", "Close");
+    closeBtn.textContent = "×";
+    closeBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (options.onClose) {
+        options.onClose();
+      } else {
+        hideShrineCraftingHud(false);
+      }
+    });
+    header.append(recipesBtn, closeBtn);
 
     const layout = document.createElement("div");
     layout.className = "crafting-hud-layout";

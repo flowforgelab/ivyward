@@ -1,5 +1,6 @@
 import { getMaterialName } from "../inventory/materials";
 import { appendMaterialVisual } from "./materialIcon";
+import { popOverlay, pushOverlay } from "./overlayStack";
 import {
   CRAFT_RECIPES,
   getRecipeMaterials,
@@ -74,7 +75,7 @@ function ensureRecipesRoot(): HTMLElement {
     <div class="recipes-panel" role="dialog" aria-labelledby="recipes-title">
       <div class="recipes-header">
         <h2 id="recipes-title">Recipes</h2>
-        <button type="button" id="recipes-close" class="recipes-close">Close</button>
+        <button type="button" id="recipes-close" class="recipes-close" aria-label="Close">×</button>
       </div>
       <p class="recipes-intro">Shaped 4×4 patterns. Slide them anywhere on the grid; do not rotate. Craft at Moon Shrine, or from Inventory after you own a Portable Moonshrine.</p>
       <div id="recipes-body" class="recipes-body"></div>
@@ -145,6 +146,7 @@ export function openRecipes(): void {
   root.hidden = false;
   recipesOpen = true;
   setBackgroundInert(true);
+  pushOverlay("recipes", closeRecipes);
   window.addEventListener("keydown", onRecipesKeyDown, true);
   const closeBtn = root.querySelector(
     "#recipes-close",
@@ -153,6 +155,7 @@ export function openRecipes(): void {
 }
 
 export function closeRecipes(): void {
+  popOverlay("recipes");
   const root = document.getElementById("recipes-overlay");
   if (root) {
     root.hidden = true;

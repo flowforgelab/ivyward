@@ -10,6 +10,7 @@ import {
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
 import { refreshPartyStatusLine } from "./statusPanel";
+import { popOverlay, pushOverlay } from "./overlayStack";
 import { isVisitorMode } from "../world/worldSession";
 
 let partyOpen = false;
@@ -64,7 +65,7 @@ function ensurePartyRoot(): HTMLElement {
     <div class="party-panel" role="dialog" aria-labelledby="party-title">
       <div class="party-header">
         <h2 id="party-title">Party</h2>
-        <button type="button" id="party-close" class="party-close">Close</button>
+        <button type="button" id="party-close" class="party-close" aria-label="Close">×</button>
       </div>
       <p class="party-intro">Active party holds up to ${ACTIVE_PARTY_LIMIT}. Reserve scrolls — select one from each list to swap.</p>
       <div class="party-columns">
@@ -225,12 +226,14 @@ export function openParty(): void {
   root.hidden = false;
   partyOpen = true;
   setBackgroundInert(true);
+  pushOverlay("party", closeParty);
   document.addEventListener("keydown", onPartyKeyDown);
   const closeBtn = root.querySelector("#party-close") as HTMLButtonElement | null;
   closeBtn?.focus();
 }
 
 export function closeParty(): void {
+  popOverlay("party");
   const root = document.getElementById("party-overlay");
   if (root) {
     root.hidden = true;

@@ -16,6 +16,7 @@ import {
 } from "./craftingHud";
 import { isConsumableItem } from "../shrine/consumables";
 import { openRecipes } from "./recipePanel";
+import { popOverlay, pushOverlay } from "./overlayStack";
 
 export type InventoryLine = {
   kind: "material" | "item";
@@ -99,7 +100,7 @@ function ensureInventoryRoot(): HTMLElement {
         <h2 id="inventory-title">Inventory</h2>
         <div class="inventory-header-actions">
           <button type="button" id="inventory-recipes" class="inventory-close">Recipes</button>
-          <button type="button" id="inventory-close" class="inventory-close">Close</button>
+          <button type="button" id="inventory-close" class="inventory-close" aria-label="Close">×</button>
         </div>
       </div>
       <p id="inventory-intro" class="inventory-intro"></p>
@@ -235,6 +236,7 @@ function syncInventoryCraftHud(root: HTMLElement): void {
       interactive: !isVisitorMode(),
       onCrafted: () => renderInventoryBody(),
       onInventoryChange: () => renderInventoryBody(),
+      onClose: closeInventory,
     });
   } else {
     inventoryCraftHud.refresh();
@@ -250,6 +252,7 @@ export function openInventory(): void {
   root.hidden = false;
   inventoryOpen = true;
   setBackgroundInert(true);
+  pushOverlay("inventory", closeInventory);
   window.addEventListener("keydown", onInventoryKeyDown, true);
   const closeBtn = root.querySelector(
     "#inventory-close",
@@ -258,6 +261,7 @@ export function openInventory(): void {
 }
 
 export function closeInventory(): void {
+  popOverlay("inventory");
   inventoryCraftHud?.destroy();
   inventoryCraftHud = null;
   const root = document.getElementById("inventory-overlay");

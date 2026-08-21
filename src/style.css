@@ -854,7 +854,22 @@ body,
 .crafting-hud-header {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+.crafting-close-btn {
+  border: 2px solid #a0c8b8;
+  background: #f4fffa;
+  color: #2a6058;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
 .crafting-recipes-btn {

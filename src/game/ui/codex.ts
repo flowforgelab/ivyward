@@ -10,6 +10,7 @@ import {
 } from "../progression/achievements";
 import { ZONES } from "../world/zones";
 import type { ZoneId } from "../world/zoneTypes";
+import { popOverlay, pushOverlay } from "./overlayStack";
 
 let codexOpen = false;
 
@@ -26,7 +27,7 @@ function ensureCodexRoot(): HTMLElement {
     <div class="codex-panel" role="dialog" aria-labelledby="codex-title">
       <div class="codex-header">
         <h2 id="codex-title">Creature Codex</h2>
-        <button type="button" id="codex-close" class="codex-close">Close</button>
+        <button type="button" id="codex-close" class="codex-close" aria-label="Close">×</button>
       </div>
       <p class="codex-intro">What lives where — fills in as you encounter creatures.</p>
       <div id="codex-body" class="codex-body"></div>
@@ -108,9 +109,11 @@ export function openCodex(): void {
   renderCodexFooter();
   root.hidden = false;
   codexOpen = true;
+  pushOverlay("codex", closeCodex);
 }
 
 export function closeCodex(): void {
+  popOverlay("codex");
   const root = document.getElementById("codex-overlay");
   if (root) {
     root.hidden = true;
