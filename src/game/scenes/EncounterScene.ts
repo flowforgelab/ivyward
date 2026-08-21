@@ -193,6 +193,11 @@ export class EncounterScene extends Phaser.Scene {
     this.renderUnaffordableReasons();
   }
 
+  /** Miss / result copy sits below the cost-reason line so they never overlap. */
+  private resultMessageY(): number {
+    return this.costReasonY + 36;
+  }
+
   private renderUnaffordableReasons(): void {
     this.unaffordableText?.destroy();
     this.unaffordableText = undefined;
@@ -336,7 +341,7 @@ export class EncounterScene extends Phaser.Scene {
     this.missText?.destroy();
     this.missText = this.addPanelText(
       DESIGN_SIZE / 2,
-      DESIGN_SIZE / 2 + 210,
+      this.resultMessageY(),
       message,
       PANEL_WIDTH - PANEL_PADDING * 2,
       {
@@ -352,7 +357,7 @@ export class EncounterScene extends Phaser.Scene {
     this.missText = undefined;
     const text = this.addPanelText(
       DESIGN_SIZE / 2,
-      DESIGN_SIZE / 2 + 210,
+      this.resultMessageY(),
       message,
       PANEL_WIDTH - PANEL_PADDING * 2,
       {
