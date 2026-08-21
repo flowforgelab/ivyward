@@ -86,6 +86,8 @@ type HudOptions = {
   onCrafted?: (name: string, count: number) => void;
   onInventoryChange?: () => void;
   onClose?: () => void;
+  /** When false, omit × (Inventory already has its own close). Default true. */
+  showClose?: boolean;
 };
 
 function ownedMaterials(): { id: string; name: string; count: number }[] {
@@ -387,20 +389,23 @@ export function mountCraftingHud(
       event.stopPropagation();
       openRecipes();
     });
-    const closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.className = "crafting-close-btn";
-    closeBtn.setAttribute("aria-label", "Close");
-    closeBtn.textContent = "×";
-    closeBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      if (options.onClose) {
-        options.onClose();
-      } else {
-        hideShrineCraftingHud(false);
-      }
-    });
-    header.append(recipesBtn, closeBtn);
+    header.append(recipesBtn);
+    if (options.showClose !== false) {
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "crafting-close-btn";
+      closeBtn.setAttribute("aria-label", "Close");
+      closeBtn.textContent = "×";
+      closeBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (options.onClose) {
+          options.onClose();
+        } else {
+          hideShrineCraftingHud(false);
+        }
+      });
+      header.append(closeBtn);
+    }
 
     const layout = document.createElement("div");
     layout.className = "crafting-hud-layout";

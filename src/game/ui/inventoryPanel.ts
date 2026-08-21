@@ -232,7 +232,7 @@ function syncInventoryCraftHud(root: HTMLElement): void {
       interactive: !isVisitorMode(),
       onCrafted: () => renderInventoryBody(),
       onInventoryChange: () => renderInventoryBody(),
-      onClose: closeInventory,
+      showClose: false,
     });
   } else {
     inventoryCraftHud.refresh();

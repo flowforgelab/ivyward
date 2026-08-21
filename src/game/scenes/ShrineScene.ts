@@ -39,7 +39,7 @@ import {
   hideShrineCraftingHud,
   showShrineCraftingHud,
 } from "../ui/craftingHud";
-import { popOverlay, pushOverlay } from "../ui/overlayStack";
+import { getTopOverlayId, popOverlay, pushOverlay } from "../ui/overlayStack";
 import { openRecipes } from "../ui/recipePanel";
 import { shrineTabContentHeight } from "../ui/shrineContentScroll";
 
@@ -214,7 +214,13 @@ export class ShrineScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => this.closeShrine());
+      .on("pointerdown", () => {
+        // Only the top overlay's × may close; craft-hud can stack above shrine.
+        if (getTopOverlayId() !== "shrine") {
+          return;
+        }
+        this.closeShrine();
+      });
 
     pushOverlay("shrine", () => this.closeShrine());
   }

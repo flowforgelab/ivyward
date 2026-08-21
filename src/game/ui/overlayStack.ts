@@ -45,6 +45,10 @@ export function popOverlay(id: string): void {
   }
 }
 
+export function getTopOverlayId(): string | null {
+  return stack.length ? stack[stack.length - 1]!.id : null;
+}
+
 /** Test helper. */
 export function getOverlayStackIds(): string[] {
   return stack.map((entry) => entry.id);

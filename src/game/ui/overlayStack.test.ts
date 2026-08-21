@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  getOverlayStackIds,
-  popOverlay,
-  pushOverlay,
-  resetOverlayStack,
-} from "./overlayStack";
+import { getOverlayStackIds, getTopOverlayId, popOverlay, pushOverlay, resetOverlayStack } from "./overlayStack";
 
 describe("overlayStack", () => {
   afterEach(() => {
@@ -48,6 +43,14 @@ describe("overlayStack", () => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     expect(upper).toHaveBeenCalledTimes(1);
     expect(lowerCapture).not.toHaveBeenCalled();
+  });
+
+  it("returns the top overlay id", () => {
+    pushOverlay("shrine", () => undefined);
+    pushOverlay("craft-hud", () => undefined);
+    expect(getTopOverlayId()).toBe("craft-hud");
+    popOverlay("craft-hud");
+    expect(getTopOverlayId()).toBe("shrine");
   });
 
   it("Esc with an empty stack is a no-op", () => {
