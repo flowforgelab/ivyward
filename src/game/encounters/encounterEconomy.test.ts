@@ -81,4 +81,16 @@ describe("encounterEconomy (#267 pinned costs)", () => {
     expect(getMaterialCount(FOLKLORE_DUST_ID)).toBe(0);
     expect(payFleeCost()).toBe(false);
   });
+
+  it("after exactly-2 Dust Befriend spend, Flee becomes unaffordable with reason", () => {
+    setInventoryFromSnapshot({ [FOLKLORE_DUST_ID]: 2 }, {});
+    expect(canAffordFlee()).toBe(true);
+    expect(payBefriendCost()).toBe(true);
+    expect(getFolkloreDustCount()).toBe(0);
+    expect(canAffordFlee()).toBe(false);
+    expect(encounterUnaffordableReasons()).toEqual([
+      "Need 2 Folklore Dust to Befriend",
+      "Need 1 Folklore Dust to Flee",
+    ]);
+  });
 });

@@ -54,6 +54,9 @@ export class EncounterScene extends Phaser.Scene {
   private befriendAttempted = false;
   private missText?: Phaser.GameObjects.Text;
   private befriendBtn?: Phaser.GameObjects.Text;
+  private fleeBtn?: Phaser.GameObjects.Text;
+  private unaffordableText?: Phaser.GameObjects.Text;
+  private costReasonY = 0;
 
   constructor() {
     super({ key: "EncounterScene" });
@@ -181,22 +184,48 @@ export class EncounterScene extends Phaser.Scene {
       );
       if (index === 0) {
         this.befriendBtn = btn;
+      } else if (index === 2) {
+        this.fleeBtn = btn;
       }
     });
 
+    this.costReasonY = buttonY + 42;
+    this.renderUnaffordableReasons();
+  }
+
+  private renderUnaffordableReasons(): void {
+    this.unaffordableText?.destroy();
+    this.unaffordableText = undefined;
     const unaffordable = encounterUnaffordableReasons();
-    if (unaffordable.length > 0) {
-      this.addPanelText(
-        panelX,
-        buttonY + 48,
-        unaffordable.join(" · "),
-        innerWidth,
-        {
-          color: "#8a5a40",
-          fontSize: "13px",
-        },
-      );
+    if (unaffordable.length === 0) {
+      return;
     }
+    this.unaffordableText = this.addPanelText(
+      DESIGN_SIZE / 2,
+      this.costReasonY,
+      unaffordable.join(" · "),
+      PANEL_WIDTH - PANEL_PADDING * 2,
+      {
+        color: "#8a5a40",
+        fontSize: "13px",
+      },
+    );
+  }
+
+  /**
+   * After Dust is spent (e.g. paid Befriend miss), disable Flee when it is no
+   * longer affordable and refresh the reason line so the control is not a silent no-op.
+   */
+  private refreshFleeAffordanceAfterSpend(): void {
+    if (this.fleeBtn && !canAffordFlee()) {
+      this.fleeBtn
+        .off("pointerover")
+        .off("pointerout")
+        .off("pointerdown")
+        .disableInteractive()
+        .setAlpha(0.45);
+    }
+    this.renderUnaffordableReasons();
   }
 
   private addPanelText(
@@ -298,6 +327,7 @@ export class EncounterScene extends Phaser.Scene {
         .off("pointerout")
         .disableInteractive()
         .setAlpha(0.5);
+      this.refreshFleeAffordanceAfterSpend();
       this.showMiss(BEFRIEND_MISS_TEXT);
     }
   }
