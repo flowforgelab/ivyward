@@ -54,8 +54,9 @@ export function setHudChromeFromSnapshot(options: {
   const legacyCodex =
     options.discoveredCreatures.length > 0 || options.partyCount > 0;
   const legacyRecipes = Object.values(options.materials).some((n) => n > 0);
-  codexUnlocked = options.hudCodexUnlocked === true || legacyCodex;
-  recipesUnlocked = options.hudRecipesUnlocked === true || legacyRecipes;
+  // Explicit false must win; legacy only fills absent (older) saves.
+  codexUnlocked = options.hudCodexUnlocked ?? legacyCodex;
+  recipesUnlocked = options.hudRecipesUnlocked ?? legacyRecipes;
 }
 
 export function resetHudChrome(): void {

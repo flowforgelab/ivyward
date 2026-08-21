@@ -37,6 +37,19 @@ describe("hudChrome", () => {
     expect(isRecipesHudUnlocked()).toBe(true);
   });
 
+
+  it("keeps explicit false locked despite legacy discoveries/materials", () => {
+    setHudChromeFromSnapshot({
+      hudCodexUnlocked: false,
+      hudRecipesUnlocked: false,
+      discoveredCreatures: ["mossling"],
+      partyCount: 1,
+      materials: { wood: 2 },
+    });
+    expect(isCodexHudUnlocked()).toBe(false);
+    expect(isRecipesHudUnlocked()).toBe(false);
+  });
+
   it("migrates older saves from discoveries and materials", () => {
     setHudChromeFromSnapshot({
       discoveredCreatures: ["mossling"],
