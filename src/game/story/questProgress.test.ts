@@ -1,8 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setVisitorMode } from "../world/worldSession";
-import { setOverworldUnlocked, worldState } from "../world/worldState";
+import {
+  setDiscoveredZones,
+  setFirstIslandLanded,
+  setOverworldUnlocked,
+  worldState,
+} from "../world/worldState";
 import {
   getActiveQuestId,
+  getQuestHint,
+  getQuestSummary,
   initQuestProgress,
   questProgress,
   recordQuestEvent,
@@ -54,5 +61,64 @@ describe("recordQuestEvent", () => {
     setVisitorMode(true);
     expect(recordQuestEvent({ type: "befriend_creature" })).toBe(false);
     expect(questProgress["first-befriend"]).toBe("active");
+  });
+});
+
+describe("post-story HUD Next", () => {
+  beforeEach(() => {
+    setVisitorMode(false);
+    setOverworldUnlocked(true);
+    setDiscoveredZones([]);
+    setFirstIslandLanded(false, false);
+    restoreQuestProgress({
+      "first-befriend": "complete",
+      "first-spar": "complete",
+      "reach-village": "complete",
+      "shrine-craft": "complete",
+    });
+  });
+
+  it("shows Harbor Next immediately after Story 4/4", () => {
+    expect(getQuestSummary()).toBe("Next: reach Moonwake Harbor");
+    expect(getQuestHint()).toBe("");
+  });
+
+  it("advances to sail Next after Harbor is discovered", () => {
+    setDiscoveredZones(["harbor"]);
+    expect(getQuestSummary()).toBe("Next: sail east from East Landing");
+  });
+
+  it("advances to islands Next after Archipelago is discovered", () => {
+    setDiscoveredZones(["harbor", "archipelago"]);
+    expect(getQuestSummary()).toBe("Next: explore the islands");
+  });
+
+  it("clears the Next chain after first island landing", () => {
+    setDiscoveredZones(["harbor", "archipelago"]);
+    setFirstIslandLanded(true, false);
+    expect(getQuestSummary()).toBe("Story: complete");
+    expect(getQuestHint().startsWith("All story beats finished")).toBe(true);
+  });
+
+  it("persists chain progress via restore of zones and island flag", () => {
+    setDiscoveredZones(["harbor"]);
+    expect(getQuestSummary()).toBe("Next: sail east from East Landing");
+    restoreQuestProgress({
+      "first-befriend": "complete",
+      "first-spar": "complete",
+      "reach-village": "complete",
+      "shrine-craft": "complete",
+    });
+    expect(getQuestSummary()).toBe("Next: sail east from East Landing");
+  });
+
+  it("leaves pre-4/4 Story N/4 display unchanged", () => {
+    restoreQuestProgress({
+      ...lockedProgress(),
+      "first-befriend": "complete",
+      "first-spar": "active",
+    });
+    expect(getQuestSummary()).toMatch(/^Story 2\/4:/);
+    expect(getQuestHint().startsWith("Next:")).toBe(true);
   });
 });

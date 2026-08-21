@@ -24,17 +24,18 @@ import { reopenParentSovereignEncounters } from "../shrine/godFusion";
 import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import {
+  worldState,
   MAX_SOVEREIGN_COPIES,
   setCairnSovereignObtained,
   setDiscoveredCreatures,
   setDiscoveredZones,
   setEclipseFusionCompleted,
+  setFirstIslandLanded,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
   setHorizonFusionCount,
   setOverworldUnlocked,
   setTideSovereignObtained,
-  worldState,
 } from "./worldState";
 import {
   evaluateCodexAchievement,
@@ -113,6 +114,8 @@ export type WorldSnapshot = {
   sailing?: boolean;
   /** Tide Sovereign has been obtained. Optional for older saves. */
   godSailEncounterClaimed?: boolean;
+  /** Optional: post-Story Next — first archipelago island stand. */
+  firstIslandLanded?: boolean;
   /** Lifetime Tide Sovereign claims (0–2). Optional for older saves. */
   tideSovereignObtained?: number;
   /** Stone Sovereign has been obtained. Optional for older saves. */
@@ -606,6 +609,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     return false;
   }
   if (
+    s.firstIslandLanded !== undefined &&
+    typeof s.firstIslandLanded !== "boolean"
+  ) {
+    return false;
+  }
+  if (
     s.godLandEncounterClaimed !== undefined &&
     typeof s.godLandEncounterClaimed !== "boolean"
   ) {
@@ -805,6 +814,7 @@ export function exportWorldSnapshot(
     mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
+    firstIslandLanded: worldState.firstIslandLanded,
     tideSovereignObtained: worldState.tideSovereignObtained,
     godLandEncounterClaimed: worldState.godLandEncounterClaimed,
     cairnSovereignObtained: worldState.cairnSovereignObtained,
@@ -865,6 +875,14 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
+  setFirstIslandLanded(snapshot.firstIslandLanded === true, false);
+  if (
+    !worldState.firstIslandLanded &&
+    snapshot.position.zoneId === "archipelago" &&
+    isArchipelagoIslandPosition(snapshot.position.x, snapshot.position.y)
+  ) {
+    setFirstIslandLanded(true, false);
+  }
   setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);
   setEclipseFusionCompleted(snapshot.eclipseFusionCompleted === true, false);
   const horizonCount =

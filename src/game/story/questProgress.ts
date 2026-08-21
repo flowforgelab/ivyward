@@ -1,4 +1,8 @@
-import { setOverworldUnlocked, worldState } from "../world/worldState";
+import {
+  isFirstIslandLanded,
+  setOverworldUnlocked,
+  worldState,
+} from "../world/worldState";
 import { isCodexComplete } from "../progression/achievements";
 import { isVisitorMode } from "../world/worldSession";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
@@ -45,9 +49,38 @@ export function getActiveQuestId(): QuestId | null {
   return QUEST_ORDER.find((id) => questProgress[id] === "active") ?? null;
 }
 
+
+const POST_STORY_NEXT = {
+  harbor: "Next: reach Moonwake Harbor",
+  sail: "Next: sail east from East Landing",
+  islands: "Next: explore the islands",
+} as const;
+
+/** Post-FTUE HUD Next while Story 4/4 is done and before first island landing. */
+export function getPostStoryNext(): string | null {
+  const done = QUEST_ORDER.every((id) => questProgress[id] === "complete");
+  if (!done) {
+    return null;
+  }
+  if (!worldState.discoveredZones.includes("harbor")) {
+    return POST_STORY_NEXT.harbor;
+  }
+  if (!worldState.discoveredZones.includes("archipelago")) {
+    return POST_STORY_NEXT.sail;
+  }
+  if (!isFirstIslandLanded()) {
+    return POST_STORY_NEXT.islands;
+  }
+  return null;
+}
+
 export function getQuestSummary(): string {
   const activeId = getActiveQuestId();
   if (!activeId) {
+    const post = getPostStoryNext();
+    if (post) {
+      return post;
+    }
     const done = QUEST_ORDER.every((id) => questProgress[id] === "complete");
     return done ? "Story: complete" : "Story: —";
   }
@@ -60,6 +93,10 @@ export function getQuestHint(): string {
   if (!activeId) {
     const done = QUEST_ORDER.every((id) => questProgress[id] === "complete");
     if (!done) {
+      return "";
+    }
+    // While the post-Story Next chain occupies the story slot, keep the hint empty.
+    if (getPostStoryNext()) {
       return "";
     }
     // Subtle nudge only — the codex reward is never named before it is earned.

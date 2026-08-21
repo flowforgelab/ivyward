@@ -105,7 +105,13 @@ import {
   STARTING_ZONE_ID,
   getZone,
 } from "../world/zones";
-import { markZoneDiscovered, toggleOverworldUnlock, worldState } from "../world/worldState";
+import {
+  isFirstIslandLanded,
+  markZoneDiscovered,
+  setFirstIslandLanded,
+  toggleOverworldUnlock,
+  worldState,
+} from "../world/worldState";
 import { TileType, type ZoneDefinition, type ZoneId } from "../world/zoneTypes";
 import { cottageFrame } from "../world/cottageWalls";
 import {
@@ -146,6 +152,7 @@ import {
   ARCHIPELAGO_MAX_WIDTH,
   archipelagoVisualWindow,
   biomeAtIslandTile,
+  isArchipelagoIslandPosition,
   ensureArchipelagoChunksAround,
   getArchipelagoPropsInWindow,
   isInArchipelagoVisualWindow,
@@ -440,6 +447,7 @@ export class IsometricScene extends Phaser.Scene {
       );
       if (this.currentZoneId === "archipelago") {
         this.syncArchipelagoStream();
+        this.maybeNoteIslandLand();
       }
       this.tryZoneTransition(zone);
       this.tryRandomEncounter(step);
@@ -887,6 +895,18 @@ export class IsometricScene extends Phaser.Scene {
     }
   }
 
+
+  private maybeNoteIslandLand(): void {
+    if (this.currentZoneId !== "archipelago" || isFirstIslandLanded()) {
+      return;
+    }
+    if (!isArchipelagoIslandPosition(this.playerGridX, this.playerGridY)) {
+      return;
+    }
+    setFirstIslandLanded(true);
+    updateStatusPanel(getZone(this.currentZoneId));
+  }
+
   private loadZone(zoneId: ZoneId): void {
     if (this.currentZoneId === "archipelago" && zoneId !== "archipelago") {
       resetArchipelagoStream();
@@ -935,6 +955,7 @@ export class IsometricScene extends Phaser.Scene {
     bindPlayerDisplaySize(this.player);
     this.syncPlayerToGrid();
     this.playPlayerAnimation();
+    this.maybeNoteIslandLand();
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     // setBounds (in layout) often leaves scroll at bounds origin; with follow lerp
     // 0.08 that reads as a dive from map top — snap onto the player immediately.
@@ -1593,6 +1614,7 @@ export class IsometricScene extends Phaser.Scene {
         );
         this.syncPlayerToGrid();
         this.drawPlacedBoat(getZone(this.currentZoneId));
+        this.maybeNoteIslandLand();
       }
       this.showGatherToast(result.message, result.ok);
       updateStatusPanel(getZone(this.currentZoneId));

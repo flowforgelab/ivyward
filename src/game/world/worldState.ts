@@ -23,6 +23,8 @@ export const worldState = {
   horizonFusionCount: 0,
   /** Two Horizons have been fused into Eclipse Sovereign. */
   eclipseFusionCompleted: false,
+  /** Post-Story Next chain: stepped onto an archipelago island Floor/Dock. */
+  firstIslandLanded: false,
 };
 
 export function setOverworldUnlocked(unlocked: boolean): void {
@@ -170,6 +172,20 @@ export function setGodFusionCompleted(
     return;
   }
   setHorizonFusionCount(0, notify);
+}
+
+export function isFirstIslandLanded(): boolean {
+  return worldState.firstIslandLanded;
+}
+
+export function setFirstIslandLanded(landed: boolean, notify = true): void {
+  if (worldState.firstIslandLanded === landed) {
+    return;
+  }
+  worldState.firstIslandLanded = landed;
+  if (notify) {
+    notifyWorldChanged();
+  }
 }
 
 export function markZoneDiscovered(zoneId: ZoneId): void {
