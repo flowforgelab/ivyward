@@ -14,7 +14,7 @@ function onKeyDown(event: KeyboardEvent): void {
     return;
   }
   event.preventDefault();
-  event.stopPropagation();
+  event.stopImmediatePropagation();
   const top = stack[stack.length - 1];
   top?.close();
 }

@@ -44,11 +44,10 @@ function onRecipesKeyDown(event: KeyboardEvent): void {
   if (!recipesOpen) {
     return;
   }
-  event.stopImmediatePropagation();
   if (event.key === "Escape") {
-    event.preventDefault();
-    closeRecipes();
+    return;
   }
+  event.stopImmediatePropagation();
 }
 
 function setBackgroundInert(inert: boolean): void {

@@ -62,16 +62,12 @@ function onInventoryKeyDown(event: KeyboardEvent): void {
   if (!inventoryOpen) {
     return;
   }
-  const recipes = document.getElementById("recipes-overlay");
-  if (recipes && !recipes.hidden) {
+  // Esc is owned by overlayStack (top-most only). Still swallow other keys.
+  if (event.key === "Escape") {
     return;
   }
   // Capture-phase: block Phaser / world hotkeys while the modal is open.
   event.stopImmediatePropagation();
-  if (event.key === "Escape") {
-    event.preventDefault();
-    closeInventory();
-  }
 }
 
 function setBackgroundInert(inert: boolean): void {

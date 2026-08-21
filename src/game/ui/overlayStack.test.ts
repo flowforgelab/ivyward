@@ -27,6 +27,29 @@ describe("overlayStack", () => {
     expect(lower).toHaveBeenCalledTimes(1);
   });
 
+
+  it("stops later capture listeners after closing the top overlay", () => {
+    const upper = vi.fn();
+    const lowerCapture = vi.fn();
+    pushOverlay("inventory", () => undefined);
+    pushOverlay("recipes", () => {
+      upper();
+      // simulate recipes becoming hidden before later listeners run
+    });
+    window.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Escape") {
+          lowerCapture();
+        }
+      },
+      true,
+    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(upper).toHaveBeenCalledTimes(1);
+    expect(lowerCapture).not.toHaveBeenCalled();
+  });
+
   it("Esc with an empty stack is a no-op", () => {
     expect(() =>
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })),
