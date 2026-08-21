@@ -13,13 +13,22 @@ import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { UNARMED_WANDERER } from "../battle/wandererWeapons";
 import {
   BEFRIEND_MISS_TEXT,
-  befriendButtonLabel,
   canAttemptBefriend,
   formatGodClaimJoinLine,
   getBefriendChance,
   resolveTideSovereignOutcome,
   TIDE_SOVEREIGN_ID,
 } from "../encounters/godSail";
+import {
+  canAffordBefriend,
+  canAffordFlee,
+  encounterBefriendButtonLabel,
+  encounterFleeButtonLabel,
+  encounterSparButtonLabel,
+  encounterUnaffordableReasons,
+  payBefriendCost,
+  payFleeCost,
+} from "../encounters/encounterEconomy";
 import {
   CAIRN_SOVEREIGN_ID,
   resolveCairnSovereignOutcome,
@@ -45,6 +54,9 @@ export class EncounterScene extends Phaser.Scene {
   private befriendAttempted = false;
   private missText?: Phaser.GameObjects.Text;
   private befriendBtn?: Phaser.GameObjects.Text;
+  private fleeBtn?: Phaser.GameObjects.Text;
+  private unaffordableText?: Phaser.GameObjects.Text;
+  private costReasonY = 0;
 
   constructor() {
     super({ key: "EncounterScene" });
@@ -144,9 +156,14 @@ export class EncounterScene extends Phaser.Scene {
 
     const buttonY = panelY + 162;
     const buttonLabels = [
-      befriendButtonLabel(getBefriendChance(this.creatureId)),
-      "Spar",
-      "Flee",
+      encounterBefriendButtonLabel(this.creatureId),
+      encounterSparButtonLabel(),
+      encounterFleeButtonLabel(),
+    ] as const;
+    const buttonEnabled = [
+      canAffordBefriend(),
+      true,
+      canAffordFlee(),
     ] as const;
     const buttonActions = [
       () => this.tryBefriend(),
@@ -163,11 +180,57 @@ export class EncounterScene extends Phaser.Scene {
         label,
         buttonActions[index],
         index,
+        buttonEnabled[index],
       );
       if (index === 0) {
         this.befriendBtn = btn;
+      } else if (index === 2) {
+        this.fleeBtn = btn;
       }
     });
+
+    this.costReasonY = buttonY + 42;
+    this.renderUnaffordableReasons();
+  }
+
+  /** Miss / result copy sits below the cost-reason line so they never overlap. */
+  private resultMessageY(): number {
+    return this.costReasonY + 36;
+  }
+
+  private renderUnaffordableReasons(): void {
+    this.unaffordableText?.destroy();
+    this.unaffordableText = undefined;
+    const unaffordable = encounterUnaffordableReasons();
+    if (unaffordable.length === 0) {
+      return;
+    }
+    this.unaffordableText = this.addPanelText(
+      DESIGN_SIZE / 2,
+      this.costReasonY,
+      unaffordable.join(" · "),
+      PANEL_WIDTH - PANEL_PADDING * 2,
+      {
+        color: "#8a5a40",
+        fontSize: "13px",
+      },
+    );
+  }
+
+  /**
+   * After Dust is spent (e.g. paid Befriend miss), disable Flee when it is no
+   * longer affordable and refresh the reason line so the control is not a silent no-op.
+   */
+  private refreshFleeAffordanceAfterSpend(): void {
+    if (this.fleeBtn && !canAffordFlee()) {
+      this.fleeBtn
+        .off("pointerover")
+        .off("pointerout")
+        .off("pointerdown")
+        .disableInteractive()
+        .setAlpha(0.45);
+    }
+    this.renderUnaffordableReasons();
   }
 
   private addPanelText(
@@ -195,6 +258,7 @@ export class EncounterScene extends Phaser.Scene {
     label: string,
     onClick: () => void,
     index: number,
+    enabled: boolean,
   ): Phaser.GameObjects.Text {
     const tones = ["#7ed6a8", "#7ec8e8", "#f0c878"] as const;
     const btn = this.add
@@ -202,13 +266,18 @@ export class EncounterScene extends Phaser.Scene {
         color: "#1a3040",
         backgroundColor: tones[index],
         ...TEXT_STYLE,
-        fontSize: "16px",
+        fontSize: "14px",
         fontStyle: "bold",
-        padding: { x: 14, y: 10 },
+        padding: { x: 10, y: 10 },
       })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
+      .setOrigin(0.5);
 
+    if (!enabled) {
+      btn.setAlpha(0.45);
+      return btn;
+    }
+
+    btn.setInteractive({ useHandCursor: true });
     btn.on("pointerover", () => btn.setAlpha(0.88));
     btn.on("pointerout", () => btn.setAlpha(1));
     btn.on("pointerdown", onClick);
@@ -221,6 +290,9 @@ export class EncounterScene extends Phaser.Scene {
       isVisitorMode() ||
       !canAttemptBefriend(this.befriendAttempted)
     ) {
+      return;
+    }
+    if (!canAffordBefriend() || !payBefriendCost()) {
       return;
     }
     this.actionTaken = true;
@@ -260,6 +332,7 @@ export class EncounterScene extends Phaser.Scene {
         .off("pointerout")
         .disableInteractive()
         .setAlpha(0.5);
+      this.refreshFleeAffordanceAfterSpend();
       this.showMiss(BEFRIEND_MISS_TEXT);
     }
   }
@@ -268,7 +341,7 @@ export class EncounterScene extends Phaser.Scene {
     this.missText?.destroy();
     this.missText = this.addPanelText(
       DESIGN_SIZE / 2,
-      DESIGN_SIZE / 2 + 210,
+      this.resultMessageY(),
       message,
       PANEL_WIDTH - PANEL_PADDING * 2,
       {
@@ -284,7 +357,7 @@ export class EncounterScene extends Phaser.Scene {
     this.missText = undefined;
     const text = this.addPanelText(
       DESIGN_SIZE / 2,
-      DESIGN_SIZE / 2 + 210,
+      this.resultMessageY(),
       message,
       PANEL_WIDTH - PANEL_PADDING * 2,
       {
@@ -318,7 +391,10 @@ export class EncounterScene extends Phaser.Scene {
   }
 
   private flee(): void {
-    if (this.actionTaken) {
+    if (this.actionTaken || isVisitorMode()) {
+      return;
+    }
+    if (!canAffordFlee() || !payFleeCost()) {
       return;
     }
     this.actionTaken = true;
