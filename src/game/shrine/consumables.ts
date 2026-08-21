@@ -20,7 +20,6 @@ type HpConsumableDefinition = {
 type LevelConsumableDefinition = {
   itemId: string;
   effectType: "level";
-  itemCost: number;
 };
 
 export type ConsumableDefinition =
@@ -30,8 +29,15 @@ export type ConsumableDefinition =
 export const CONSUMABLE_ITEMS: ConsumableDefinition[] = [
   { itemId: "brook-tonic", effectType: "heal", hpFraction: 0.5 },
   { itemId: "moonwake-draught", effectType: "revive", hpFraction: 0.5 },
-  { itemId: "brook-crystal", effectType: "level", itemCost: 2 },
+  { itemId: "brook-crystal", effectType: "level" },
 ];
+
+/** A3 option (ii): 2 below L10, 4 below L25, 8 at L25+. */
+export function getBrookCrystalCost(level: number): number {
+  if (level < 10) return 2;
+  if (level < 25) return 4;
+  return 8;
+}
 
 export const FUSION_ITEM_IDS = [
   "sovereign-seal",
@@ -101,10 +107,16 @@ export function applyConsumable(
     };
   }
 
-  const itemCost = consumable.effectType === "level" ? consumable.itemCost : 1;
+  const itemCost =
+    consumable.effectType === "level"
+      ? getBrookCrystalCost(creature.level)
+      : 1;
   if (getItemCount(itemId) < itemCost) {
     return consumable.effectType === "level"
-      ? { ok: false, message: "You need 2 Brook Crystals." }
+      ? {
+          ok: false,
+          message: `You need ${itemCost} Brook Crystals.`,
+        }
       : { ok: false, message: "You don't have that item." };
   }
   if (!consumeItem(itemId, itemCost)) {
