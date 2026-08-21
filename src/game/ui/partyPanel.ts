@@ -24,9 +24,9 @@ function onPartyKeyDown(event: KeyboardEvent): void {
   if (!partyOpen) {
     return;
   }
+  // Esc owned by overlayStack (top-most only).
   if (event.key === "Escape") {
-    event.preventDefault();
-    closeParty();
+    return;
   }
 }
 
