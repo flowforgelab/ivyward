@@ -25,7 +25,7 @@ export class PreloadScene extends Phaser.Scene {
 
     this.load.on("progress", (value: number) => {
       const ratio = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
-      fill.width = Math.max(1, barWidth * ratio);
+      fill.setDisplaySize(Math.max(1, barWidth * ratio), barHeight);
     });
 
     // ponytail: ignore missing optional Imagine files; procedural ensure* fills gaps
