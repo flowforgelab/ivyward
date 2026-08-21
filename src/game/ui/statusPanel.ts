@@ -9,6 +9,7 @@ import { openInventory } from "./inventoryPanel";
 import { openRecipes } from "./recipePanel";
 import { renderPartyHpHud } from "./partyHpHud";
 import "./partyHpHud.css";
+import { CONTROL_LEGEND_TEXT } from "./controlLegend";
 
 let inviteFeedbackActive = false;
 let inviteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -44,6 +45,7 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
   const zoneEl = document.getElementById("status-zone");
   const questEl = document.getElementById("status-quest");
   const questHintEl = document.getElementById("status-quest-hint");
+  const legendEl = document.getElementById("status-control-legend");
   const gateEl = document.getElementById("status-gate");
   const partyEl = document.getElementById("status-party");
   const sessionEl = document.getElementById("status-session");
@@ -62,6 +64,9 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
     questHintEl.textContent = villageAsk
       ? `${storyHint} · ${villageAsk}`
       : storyHint;
+  }
+  if (legendEl) {
+    legendEl.textContent = CONTROL_LEGEND_TEXT;
   }
   if (gateEl) {
     gateEl.textContent = getGateStatusText();

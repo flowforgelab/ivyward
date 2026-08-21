@@ -119,6 +119,7 @@ import {
 } from "../minigames/ids";
 import { canLaunchMinigame } from "../minigames/progress";
 import { findGatherPropNearPlayer } from "../world/gatherNodes";
+import { findNearbyDoor, isNearShrine } from "../world/interactProximity";
 import {
   getGatherCooldownRemainingMs,
   tryHarvestNode,
@@ -1383,10 +1384,9 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private getNearbyDoor() {
-    const zone = getZone(this.currentZoneId);
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    return zone.doors?.find((door) => door.x === tileX && door.y === tileY);
+    return findNearbyDoor(getZone(this.currentZoneId), tileX, tileY);
   }
 
   private getNearbyNpc() {
@@ -1395,16 +1395,10 @@ export class IsometricScene extends Phaser.Scene {
     return findNpcNearPlayer(this.currentZoneId, tileX, tileY);
   }
 
-  private isOnShrineTile(): boolean {
-    const zone = getZone(this.currentZoneId);
-    if (!zone.shrineInteract) {
-      return false;
-    }
+  private isNearShrineTile(): boolean {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    return (
-      tileX === zone.shrineInteract.x && tileY === zone.shrineInteract.y
-    );
+    return isNearShrine(getZone(this.currentZoneId), tileX, tileY);
   }
 
   private syncWalkHint(): void {
@@ -1432,7 +1426,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private updateInteractPrompt(): void {
-    const shrine = this.isOnShrineTile();
+    const shrine = this.isNearShrineTile();
     const door = !shrine ? this.getNearbyDoor() : undefined;
     const minigame = !shrine && !door ? this.getMinigameHere() : undefined;
     const npc = !shrine && !door && !minigame ? this.getNearbyNpc() : undefined;
@@ -1653,7 +1647,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryShrineInteract(): boolean {
-    if (!this.isOnShrineTile()) {
+    if (!this.isNearShrineTile()) {
       return false;
     }
     this.inShrine = true;

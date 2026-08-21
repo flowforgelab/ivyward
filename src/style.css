@@ -97,6 +97,12 @@ body,
   font-style: italic;
 }
 
+.status-control-legend {
+  color: #3a5460;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .status-gate {
   color: #5a7888;
   font-size: 13px;
@@ -336,6 +342,10 @@ body,
 @media (hover: none) and (pointer: coarse), (max-width: 820px) {
   .touch-controls {
     display: block;
+  }
+
+  .status-control-legend {
+    display: none;
   }
 }
 
