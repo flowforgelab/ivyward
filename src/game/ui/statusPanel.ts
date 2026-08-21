@@ -1,4 +1,3 @@
-import { getPartySummary } from "../creatures/party";
 import { getGateStatusText, getQuestHint, getQuestSummary } from "../story/questProgress";
 import { getActiveSideQuestHint } from "../world/npcState";
 import { getHostLabel, isVisitorMode } from "../world/worldSession";
@@ -8,6 +7,8 @@ import { openCodex } from "./codex";
 import { openParty } from "./partyPanel";
 import { openInventory } from "./inventoryPanel";
 import { openRecipes } from "./recipePanel";
+import { renderPartyHpHud } from "./partyHpHud";
+import "./partyHpHud.css";
 
 let inviteFeedbackActive = false;
 let inviteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -66,7 +67,7 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
     gateEl.textContent = getGateStatusText();
   }
   if (partyEl) {
-    partyEl.textContent = getPartySummary();
+    renderPartyHpHud(partyEl);
   }
   if (sessionEl && !inviteFeedbackActive) {
     sessionEl.textContent = defaultSessionText();
@@ -77,7 +78,7 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
 export function refreshPartyStatusLine(): void {
   const partyEl = document.getElementById("status-party");
   if (partyEl) {
-    partyEl.textContent = getPartySummary();
+    renderPartyHpHud(partyEl);
   }
 }
 

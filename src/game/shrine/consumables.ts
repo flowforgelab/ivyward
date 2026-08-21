@@ -6,6 +6,7 @@ import {
 } from "../creatures/party";
 import { consumeItem, getItemCount } from "../inventory/playerInventory";
 import { grantFlatLevel, MAX_LEVEL } from "../progression/leveling";
+import { refreshPartyStatusLine } from "../ui/statusPanel";
 
 export type ConsumableEffectType = "heal" | "revive" | "level";
 
@@ -112,6 +113,7 @@ export function applyConsumable(
 
   if (consumable.effectType === "level") {
     grantFlatLevel(creature);
+    refreshPartyStatusLine();
     return {
       ok: true,
       message: `${def.name} reached Lv.${creature.level}.`,
@@ -124,6 +126,7 @@ export function applyConsumable(
     const before = creature.currentHp;
     creature.currentHp = Math.min(maxHp, creature.currentHp + amount);
     const gained = creature.currentHp - before;
+    refreshPartyStatusLine();
     return {
       ok: true,
       message: `${def.name} recovered ${gained} HP (${creature.currentHp}/${maxHp}).`,
@@ -131,6 +134,7 @@ export function applyConsumable(
   }
 
   creature.currentHp = amount;
+  refreshPartyStatusLine();
   return {
     ok: true,
     message: `${def.name} was revived (${creature.currentHp}/${maxHp} HP).`,

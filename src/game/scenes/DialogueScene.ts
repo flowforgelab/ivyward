@@ -8,6 +8,7 @@ import {
   confirmOddRest,
   type ConversationPrompt,
 } from "../world/npcState";
+import { refreshPartyStatusLine } from "../ui/statusPanel";
 
 const PANEL_WIDTH = 470;
 const PANEL_HEIGHT = 220;
@@ -176,6 +177,7 @@ export class DialogueScene extends Phaser.Scene {
     this.prompt = { kind: "advance" };
     this.lineIndex = 0;
     this.renderLine();
+    refreshPartyStatusLine();
   }
 
   private close(): void {
