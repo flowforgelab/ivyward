@@ -111,11 +111,12 @@ export function addFusedCreature(
     instanceId: `c-${nextInstanceId++}`,
     definitionId,
     speciesId: definitionId,
-    currentHp: def.maxHp,
+    currentHp: 0,
     level: clampedLevel,
     xp: LEVEL_XP_THRESHOLDS[clampedLevel] ?? 0,
     trait: rollSignatureTrait(definitionId, def.folkloreType),
   };
+  instance.currentHp = getEffectiveMaxHp(instance);
   playerParty.creatures.push(instance);
   if (playerParty.activeInstanceIds.length < ACTIVE_PARTY_LIMIT) {
     playerParty.activeInstanceIds.push(instance.instanceId);
@@ -202,14 +203,25 @@ export function moveActiveToReserve(activeInstanceId: string): boolean {
   return true;
 }
 
+/** Level contribution: +2 HP per level above 1. Level 1 == catalog base. */
 export function getEffectiveMaxHp(creature: CreatureInstance): number {
   const def = getCreatureDefinition(creature.definitionId);
-  return def.maxHp + (creature.hpBonus ?? 0);
+  const levelTerm = 2 * (creature.level - 1);
+  return def.maxHp + levelTerm + (creature.hpBonus ?? 0);
 }
 
+/** Level contribution: +1 attack per level above 1. Level 1 == catalog base. */
 export function getEffectiveAttack(creature: CreatureInstance): number {
   const def = getCreatureDefinition(creature.definitionId);
-  return def.attack + (creature.attackBonus ?? 0);
+  const levelTerm = 1 * (creature.level - 1);
+  return def.attack + levelTerm + (creature.attackBonus ?? 0);
+}
+
+/** Level contribution: +floor((L-1)/3) defense. Level 1 == catalog base. */
+export function getEffectiveDefense(creature: CreatureInstance): number {
+  const def = getCreatureDefinition(creature.definitionId);
+  const levelTerm = Math.floor((creature.level - 1) / 3);
+  return def.defense + levelTerm;
 }
 
 export function hasLivingPartyMembers(): boolean {

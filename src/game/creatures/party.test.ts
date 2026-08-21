@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { CREATURES } from "./catalog";
 import {
   ACTIVE_PARTY_LIMIT,
   addToParty,
   getActiveCreatures,
+  getEffectiveAttack,
+  getEffectiveDefense,
+  getEffectiveMaxHp,
   getReserveCreatures,
   moveActiveToReserve,
   moveReserveToActive,
@@ -112,5 +116,48 @@ describe("active party / reserve", () => {
     );
     const reserveId = creatures[ACTIVE_PARTY_LIMIT]!.instanceId;
     expect(moveReserveToActive(reserveId)).toBe(false);
+  });
+});
+
+describe("level → effective stats (#263)", () => {
+  it("applies level terms so L1 and L25 differ on every stat", () => {
+    const low = member({ instanceId: "l", definitionId: "mossling", level: 1 });
+    const high = member({ instanceId: "h", definitionId: "mossling", level: 25 });
+    expect(getEffectiveAttack(high)).toBeGreaterThan(getEffectiveAttack(low));
+    expect(getEffectiveMaxHp(high)).toBeGreaterThan(getEffectiveMaxHp(low));
+    expect(getEffectiveDefense(high)).toBeGreaterThan(getEffectiveDefense(low));
+    // Exact formula: +2 HP, +1 atk, +floor((L-1)/3) def per level above 1.
+    expect(getEffectiveMaxHp(high) - getEffectiveMaxHp(low)).toBe(2 * 24);
+    expect(getEffectiveAttack(high) - getEffectiveAttack(low)).toBe(24);
+    expect(getEffectiveDefense(high) - getEffectiveDefense(low)).toBe(
+      Math.floor(24 / 3),
+    );
+  });
+
+  it("keeps level-1 effective stats identical to catalog base for every species", () => {
+    for (const def of CREATURES) {
+      const creature = member({
+        instanceId: def.id,
+        definitionId: def.id,
+        level: 1,
+      });
+      expect(getEffectiveMaxHp(creature)).toBe(def.maxHp);
+      expect(getEffectiveAttack(creature)).toBe(def.attack);
+      expect(getEffectiveDefense(creature)).toBe(def.defense);
+    }
+  });
+
+  it("stacks shrine bonuses on top of the level term", () => {
+    const creature = member({
+      instanceId: "b",
+      definitionId: "mossling",
+      level: 4,
+      hpBonus: 5,
+      attackBonus: 3,
+    });
+    // L4: +6 HP, +3 atk, +1 def from level; plus shrine.
+    expect(getEffectiveMaxHp(creature)).toBe(28 + 6 + 5);
+    expect(getEffectiveAttack(creature)).toBe(6 + 3 + 3);
+    expect(getEffectiveDefense(creature)).toBe(4 + 1);
   });
 });

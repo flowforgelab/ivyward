@@ -3,8 +3,11 @@ import { getCreatureDefinition } from "../creatures/catalog";
 import {
   getActiveCreatures,
   getEffectiveAttack,
+  getEffectiveDefense,
   getEffectiveMaxHp,
 } from "../creatures/party";
+import { rollWildLevel } from "../encounters/tables";
+import type { ZoneId } from "../world/zoneTypes";
 import { ensureCreatureTextures } from "../creatures/sprites";
 import { resolveCreaturePoseTexture } from "../creatures/creaturePoses";
 import { hasWorldTexture, imagineTexture } from "../render/imagineAssets";
@@ -15,7 +18,11 @@ import {
 } from "../render/displaySizes";
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { ensurePlayerAnims } from "../render/playerAnims";
-import type { BattleCombatant, MoveDefinition } from "../creatures/types";
+import type {
+  BattleCombatant,
+  CreatureInstance,
+  MoveDefinition,
+} from "../creatures/types";
 import {
   applyDamage,
   calcDamage,
@@ -108,6 +115,11 @@ export class BattleScene extends Phaser.Scene {
   init(data: {
     wildCreatureId: string;
     wandererPartner: WandererPartnerData;
+    /** Habitat that spawned this wild; omitted for sovereigns / preview spars. */
+    zoneId?: ZoneId;
+    islandIndex?: number | null;
+    /** Optional fixed wild level (tests / preview). */
+    wildLevel?: number;
   }): void {
     this.wildCreatureId = data.wildCreatureId;
     this.waitingForPlayer = true;
@@ -128,13 +140,32 @@ export class BattleScene extends Phaser.Scene {
     if (!wildDef.excludeFromCodex) {
       markCreatureDiscovered(data.wildCreatureId);
     }
+    const god = isGodCreature(data.wildCreatureId);
+    // Sovereigns keep curated catalog stats; wilds take a zone band level.
+    const wildLevel = god
+      ? 1
+      : (data.wildLevel ??
+        (data.zoneId
+          ? rollWildLevel(data.zoneId, { islandIndex: data.islandIndex })
+          : 1));
+    const wildAsInstance: CreatureInstance = {
+      instanceId: "wild",
+      definitionId: data.wildCreatureId,
+      speciesId: data.wildCreatureId,
+      currentHp: 0,
+      level: wildLevel,
+      xp: 0,
+    };
+    const maxHp = god ? wildDef.maxHp : getEffectiveMaxHp(wildAsInstance);
+    const attack = god ? wildDef.attack : getEffectiveAttack(wildAsInstance);
+    const defense = god ? wildDef.defense : getEffectiveDefense(wildAsInstance);
     this.wild = {
       name: wildDef.name,
-      maxHp: wildDef.maxHp,
-      currentHp: wildDef.maxHp,
-      attack: wildDef.attack,
-      defense: wildDef.defense,
-      defenseDisabled: isGodCreature(data.wildCreatureId),
+      maxHp,
+      currentHp: maxHp,
+      attack,
+      defense,
+      defenseDisabled: god,
       moves: wildDef.moves,
       folkloreType: wildDef.folkloreType,
     };
@@ -337,7 +368,7 @@ export class BattleScene extends Phaser.Scene {
       maxHp: getEffectiveMaxHp(partyCreature),
       currentHp: partyCreature.currentHp,
       attack: getEffectiveAttack(partyCreature),
-      defense: def.defense,
+      defense: getEffectiveDefense(partyCreature),
       moves,
       folkloreType: def.folkloreType,
       immunityTo: trait?.kind === "immunity" ? trait.to : undefined,
