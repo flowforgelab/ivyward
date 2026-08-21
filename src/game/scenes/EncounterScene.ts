@@ -26,6 +26,7 @@ import {
 } from "../encounters/godLand";
 import { isVisitorMode } from "../world/worldSession";
 import { markCreatureDiscovered } from "../world/worldState";
+import { unlockCodexHud } from "../ui/hudChrome";
 
 const PANEL_WIDTH = 460;
 const PANEL_HEIGHT = 500;
@@ -318,6 +319,7 @@ export class EncounterScene extends Phaser.Scene {
   }
 
   private endEncounter(): void {
+    unlockCodexHud();
     this.cameras.main.fadeOut(140, 255, 255, 255);
     this.time.delayedCall(150, () => {
       this.scene.stop("EncounterScene");

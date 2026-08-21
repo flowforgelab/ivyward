@@ -10,6 +10,10 @@ import { openRecipes } from "./recipePanel";
 import { renderPartyHpHud } from "./partyHpHud";
 import "./partyHpHud.css";
 import { CONTROL_LEGEND_TEXT } from "./controlLegend";
+import {
+  refreshHudChromeButtons,
+} from "./hudChrome";
+import "./hudChrome.css";
 
 let inviteFeedbackActive = false;
 let inviteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -74,6 +78,7 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
   if (partyEl) {
     renderPartyHpHud(partyEl);
   }
+  refreshHudChromeButtons();
   if (sessionEl && !inviteFeedbackActive) {
     sessionEl.textContent = defaultSessionText();
     sessionEl.style.color = defaultSessionColor();
@@ -183,13 +188,45 @@ export function initStatusPanelControls(): void {
     });
   }
 
+  const overflowBtn = document.getElementById("status-overflow-btn");
+  const overflowMenu = document.getElementById("status-overflow-menu");
+  const closeOverflow = () => {
+    if (!overflowMenu || !overflowBtn) {
+      return;
+    }
+    overflowMenu.hidden = true;
+    overflowMenu.dataset.open = "0";
+    overflowBtn.setAttribute("aria-expanded", "false");
+  };
+  if (overflowBtn && overflowMenu) {
+    overflowBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const open = overflowMenu.dataset.open === "1";
+      if (open) {
+        closeOverflow();
+        return;
+      }
+      overflowMenu.hidden = false;
+      overflowMenu.dataset.open = "1";
+      overflowBtn.setAttribute("aria-expanded", "true");
+    });
+    document.addEventListener("click", () => closeOverflow());
+    overflowMenu.addEventListener("click", (event) => event.stopPropagation());
+  }
+
   const resetBtn = document.getElementById("reset-game-btn");
   if (resetBtn) {
-    resetBtn.hidden = isVisitorMode();
+    if (isVisitorMode()) {
+      resetBtn.hidden = true;
+      if (overflowBtn) {
+        overflowBtn.hidden = true;
+      }
+    }
     resetBtn.addEventListener("click", () => {
       if (isVisitorMode()) {
         return;
       }
+      closeOverflow();
       const confirmed = window.confirm(
         "Reset your world? Party, quests, and progress will be cleared.",
       );
@@ -198,6 +235,8 @@ export function initStatusPanelControls(): void {
       }
     });
   }
+
+  refreshHudChromeButtons();
 
   const codexBtn = document.getElementById("codex-btn");
   if (codexBtn) {

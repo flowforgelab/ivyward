@@ -1,5 +1,6 @@
 import { getItemName, getMaterialName } from "./materials";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
+import { unlockRecipesHud } from "../ui/hudChrome";
 
 export const playerInventory = {
   materials: {} as Record<string, number>,
@@ -22,6 +23,7 @@ export function getItemCount(itemId: string): number {
 export function addMaterial(materialId: string, amount = 1): void {
   playerInventory.materials[materialId] =
     getMaterialCount(materialId) + amount;
+  unlockRecipesHud();
   notifyWorldChanged();
 }
 

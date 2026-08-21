@@ -50,6 +50,7 @@ import {
 } from "../encounters/godLand";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { markCreatureDiscovered } from "../world/worldState";
+import { unlockCodexHud } from "../ui/hudChrome";
 import { setPartyEditLocked } from "../ui/partyPanel";
 
 type WandererPartnerData = WandererPartner;
@@ -814,6 +815,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private endBattle(playerWon: boolean): void {
+    unlockCodexHud();
     if (this.battleEnded) {
       return;
     }

@@ -60,18 +60,43 @@
             <button id="inventory-btn" type="button" class="status-codex-btn">
               Inventory
             </button>
-            <button id="recipes-btn" type="button" class="status-codex-btn">
+            <button id="recipes-btn" type="button" class="status-codex-btn" hidden>
               Recipes
             </button>
-            <button id="codex-btn" type="button" class="status-codex-btn">
+            <button id="codex-btn" type="button" class="status-codex-btn" hidden>
               Codex
             </button>
             <button id="mute-audio-btn" type="button" class="status-mute-btn">
               Mute
             </button>
-            <button id="reset-game-btn" type="button" class="status-reset-btn">
-              Reset game
-            </button>
+            <div class="status-overflow">
+              <button
+                id="status-overflow-btn"
+                type="button"
+                class="status-overflow-btn"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="status-overflow-menu"
+                aria-label="More"
+              >
+                …
+              </button>
+              <div
+                id="status-overflow-menu"
+                class="status-overflow-menu"
+                role="menu"
+                hidden
+              >
+                <button
+                  id="reset-game-btn"
+                  type="button"
+                  class="status-reset-btn"
+                  role="menuitem"
+                >
+                  Reset game
+                </button>
+              </div>
+            </div>
           </div>
           <div id="invite-url-box" class="invite-url-box" hidden>
             <label class="invite-url-label" for="invite-url-input"

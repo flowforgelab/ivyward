@@ -1,0 +1,35 @@
+.status-overflow {
+  position: relative;
+  display: inline-flex;
+}
+
+.status-overflow-btn {
+  border: 2px solid #80b0d0;
+  background: #eef6fc;
+  color: #345870;
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.status-overflow-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 5;
+  min-width: 9rem;
+  padding: 6px;
+  border: 2px solid #80b0d0;
+  border-radius: 10px;
+  background: #f7fbff;
+  box-shadow: 0 6px 14px #3a786633;
+}
+
+.status-overflow-menu .status-reset-btn {
+  width: 100%;
+  margin: 0;
+}

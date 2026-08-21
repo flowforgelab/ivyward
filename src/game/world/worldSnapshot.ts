@@ -13,6 +13,11 @@ import {
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { restoreQuestProgress, questProgress } from "../story/questProgress";
+import {
+  getHudChromeSnapshot,
+  setHudChromeFromSnapshot,
+  refreshHudChromeButtons,
+} from "../ui/hudChrome";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
 import { reopenParentSovereignEncounters } from "../shrine/godFusion";
@@ -92,6 +97,10 @@ export type WorldSnapshot = {
   claimedNpcGifts?: string[];
   /** True after Odd's first paid rest. Optional for older saves. */
   oddRestPurchased?: boolean;
+  /** Codex HUD button unlocked. Optional for older saves. */
+  hudCodexUnlocked?: boolean;
+  /** Recipes HUD button unlocked. Optional for older saves. */
+  hudRecipesUnlocked?: boolean;
   /** Cottage minigames already paid out. Optional for older saves. */
   claimedMinigameWins?: string[];
   /** NPC side-quest progress. Optional for older saves. */
@@ -541,6 +550,13 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     return false;
   }
 
+  if (s.hudCodexUnlocked !== undefined && typeof s.hudCodexUnlocked !== "boolean") {
+    return false;
+  }
+  if (s.hudRecipesUnlocked !== undefined && typeof s.hudRecipesUnlocked !== "boolean") {
+    return false;
+  }
+
   if (s.claimedMinigameWins !== undefined) {
     if (!Array.isArray(s.claimedMinigameWins)) return false;
     for (const minigameId of s.claimedMinigameWins) {
@@ -782,6 +798,7 @@ export function exportWorldSnapshot(
     unlockedAchievements: getUnlockedAchievements(),
     claimedNpcGifts: getClaimedNpcGifts(),
     oddRestPurchased: hasPurchasedOddRest(),
+    ...getHudChromeSnapshot(),
     claimedMinigameWins: getClaimedMinigameWins(),
     npcSideQuests: getSideQuestStatuses(),
     placedBoat: isBoatPlaced(),
@@ -835,6 +852,14 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     snapshot.activePartyIds,
   );
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
+  setHudChromeFromSnapshot({
+    hudCodexUnlocked: snapshot.hudCodexUnlocked,
+    hudRecipesUnlocked: snapshot.hudRecipesUnlocked,
+    discoveredCreatures: worldState.discoveredCreatures,
+    partyCount: playerParty.creatures.length,
+    materials: playerInventory.materials,
+  });
+  refreshHudChromeButtons();
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setOddRestPurchased(snapshot.oddRestPurchased === true);
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);
