@@ -187,7 +187,7 @@ export class ShrineScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, cy + 166, "Press Esc or click Close to leave", {
+      .text(cx, cy + 166, "Press Esc or click × to leave", {
         color: MOON_MUTED,
         fontFamily: "system-ui, sans-serif",
         fontSize: "12px",
