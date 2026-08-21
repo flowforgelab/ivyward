@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { findGatherPropNearPlayer } from "./gatherNodes";
 import {
+  INTERACT_PROMPT_PRIORITY,
   overlayAction,
   pickInteractPrompt,
 } from "./interactPrompt";
@@ -49,6 +50,38 @@ describe("pickInteractPrompt", () => {
 
   it("hides when nothing is in range", () => {
     expect(pickInteractPrompt({})).toBeUndefined();
+  });
+
+  it("lets each earlier kind beat the next in INTERACT_PROMPT_PRIORITY", () => {
+    const labels = {
+      shrine: "Press E — Moon Shrine",
+      door: "Press E — Weaver's Cottage",
+      minigame: "Press E — Hearth Lots",
+      npc: "Press E — Talk to Odd",
+      dock: "Press E — Board boat",
+      sailing: "Sailing",
+      gather: "Press E — Collect pebbles",
+    } as const;
+    expect(INTERACT_PROMPT_PRIORITY).toEqual([
+      "shrine",
+      "door",
+      "minigame",
+      "npc",
+      "dock",
+      "sailing",
+      "gather",
+    ]);
+    for (let i = 0; i < INTERACT_PROMPT_PRIORITY.length - 1; i += 1) {
+      const earlier = INTERACT_PROMPT_PRIORITY[i];
+      const later = INTERACT_PROMPT_PRIORITY[i + 1];
+      expect(
+        pickInteractPrompt({
+          [earlier]: labels[earlier],
+          [later]: labels[later],
+        })?.kind,
+        `${earlier} should beat ${later}`,
+      ).toBe(earlier);
+    }
   });
 });
 
