@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { getCreatureDefinition } from "../creatures/catalog";
 import {
   addToParty,
+  getEffectiveMaxHp,
   hasCreature,
   playerParty,
   setPartyFromSnapshot,
@@ -230,8 +231,8 @@ describe("dual-god fusion", () => {
       definitionId: HORIZON_SOVEREIGN_ID,
       level: 47,
       xp: LEVEL_XP_THRESHOLDS[47],
-      currentHp: getCreatureDefinition(HORIZON_SOVEREIGN_ID).maxHp,
     });
+    expect(fused?.currentHp).toBe(getEffectiveMaxHp(fused!));
     expect(fused?.attackBonus).toBeUndefined();
     expect(fused?.hpBonus).toBeUndefined();
     expect(fused?.appliedEffects).toBeUndefined();
@@ -274,8 +275,8 @@ describe("dual-god fusion", () => {
       definitionId: ECLIPSE_SOVEREIGN_ID,
       level: 48,
       xp: LEVEL_XP_THRESHOLDS[48],
-      currentHp: getCreatureDefinition(ECLIPSE_SOVEREIGN_ID).maxHp,
     });
+    expect(fused?.currentHp).toBe(getEffectiveMaxHp(fused!));
     expect(getCreatureDefinition(ECLIPSE_SOVEREIGN_ID)).toMatchObject({
       folkloreType: "mist",
       maxHp: 144,

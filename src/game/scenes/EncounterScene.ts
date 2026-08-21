@@ -26,6 +26,7 @@ import {
 } from "../encounters/godLand";
 import { isVisitorMode } from "../world/worldSession";
 import { markCreatureDiscovered } from "../world/worldState";
+import type { ZoneId } from "../world/zoneTypes";
 import { unlockCodexHud } from "../ui/hudChrome";
 
 const PANEL_WIDTH = 460;
@@ -38,6 +39,8 @@ const TEXT_STYLE = {
 
 export class EncounterScene extends Phaser.Scene {
   private creatureId!: string;
+  private zoneId?: ZoneId;
+  private islandIndex?: number | null;
   private actionTaken = false;
   private befriendAttempted = false;
   private missText?: Phaser.GameObjects.Text;
@@ -47,8 +50,15 @@ export class EncounterScene extends Phaser.Scene {
     super({ key: "EncounterScene" });
   }
 
-  init(data: { creatureId: string }): void {
+  init(data: {
+    creatureId: string;
+    zoneId?: ZoneId;
+    islandIndex?: number | null;
+    origin?: Readonly<{ x: number; y: number }>;
+  }): void {
     this.creatureId = data.creatureId;
+    this.zoneId = data.zoneId;
+    this.islandIndex = data.islandIndex;
     this.actionTaken = false;
     this.befriendAttempted = false;
   }
@@ -300,6 +310,8 @@ export class EncounterScene extends Phaser.Scene {
       this.scene.launch("BattleScene", {
         wildCreatureId: this.creatureId,
         wandererPartner: UNARMED_WANDERER,
+        zoneId: this.zoneId,
+        islandIndex: this.islandIndex,
       });
       this.scene.stop("EncounterScene");
     });

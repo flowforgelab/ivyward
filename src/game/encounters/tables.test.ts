@@ -7,13 +7,28 @@ import {
   getHabitatsForCreature,
   getKnownCreaturesForZone,
   rollWildCreature,
+  rollWildLevel,
   shouldAttemptWildEncounter,
+  WILD_LEVEL_BANDS,
   ZONE_ENCOUNTERS,
 } from "./tables";
 import type { ZoneId } from "../world/zoneTypes";
 import { ISLAND_COLS, ISLAND_ROWS } from "../world/archipelagoStream";
 import { getCreatureDefinition } from "../creatures/catalog";
 import { getMaterialForCreature } from "../inventory/materials";
+import {
+  getEffectiveAttack,
+  getEffectiveMaxHp,
+} from "../creatures/party";
+import type { CreatureInstance } from "../creatures/types";
+import {
+  CAIRN_SOVEREIGN_ATTACK_PATTERN,
+  CAIRN_SOVEREIGN_ID,
+} from "./godLand";
+import {
+  TIDE_SOVEREIGN_ATTACK_PATTERN,
+  TIDE_SOVEREIGN_ID,
+} from "./godSail";
 
 describe("getHabitatsForCreature", () => {
   it("lists every habitat that can spawn the creature", () => {
@@ -109,5 +124,66 @@ describe("archipelago exclusive encounters", () => {
       expect(getCreatureDefinition(id).id).toBe(id);
       expect(getMaterialForCreature(id)).toBeTruthy();
     }
+  });
+});
+
+describe("wild level bands (#263)", () => {
+  it("draws inclusive levels from each habitat band", () => {
+    const cases: Array<[ZoneId, number, number]> = [
+      ["grove", 1, 2],
+      ["shrine", 2, 3],
+      ["village", 3, 5],
+      ["overworld", 8, 14],
+      ["mistwood", 14, 20],
+      ["emberfen", 18, 24],
+    ];
+    for (const [zoneId, min, max] of cases) {
+      expect(WILD_LEVEL_BANDS[zoneId]).toEqual({ min, max });
+      expect(rollWildLevel(zoneId, undefined, () => 0)).toBe(min);
+      expect(rollWildLevel(zoneId, undefined, () => 0.999)).toBe(max);
+    }
+  });
+
+  it("sets archipelago level to 8 + islandIndex", () => {
+    expect(rollWildLevel("archipelago", { islandIndex: 0 })).toBe(8);
+    expect(rollWildLevel("archipelago", { islandIndex: 15 })).toBe(23);
+    expect(rollWildLevel("archipelago", { islandIndex: 0 })).not.toBe(
+      rollWildLevel("archipelago", { islandIndex: 15 }),
+    );
+  });
+
+  it("makes Emberfen wilds stronger than grove wilds for the same species", () => {
+    const species = "peat-sprite";
+    const groveLevel = rollWildLevel("grove", undefined, () => 0);
+    const emberLevel = rollWildLevel("emberfen", undefined, () => 0);
+    const asLevel = (level: number): CreatureInstance => ({
+      instanceId: "w",
+      definitionId: species,
+      speciesId: species,
+      currentHp: 0,
+      level,
+      xp: 0,
+    });
+    expect(emberLevel).toBeGreaterThan(groveLevel);
+    expect(getEffectiveAttack(asLevel(emberLevel))).toBeGreaterThan(
+      getEffectiveAttack(asLevel(groveLevel)),
+    );
+    expect(getEffectiveMaxHp(asLevel(emberLevel))).toBeGreaterThan(
+      getEffectiveMaxHp(asLevel(groveLevel)),
+    );
+  });
+});
+
+describe("sovereign encounter patterns (#263 AC4)", () => {
+  it("keeps Tide/Cairn fixed attack damage pattern", () => {
+    expect(TIDE_SOVEREIGN_ATTACK_PATTERN.map((a) => a.damage)).toEqual([
+      10, 15, 10, 20,
+    ]);
+    expect(CAIRN_SOVEREIGN_ATTACK_PATTERN.map((a) => a.damage)).toEqual([
+      10, 15, 10, 20,
+    ]);
+    // Catalog bases used when BattleScene builds sovereign combatants (no level term).
+    expect(getCreatureDefinition(TIDE_SOVEREIGN_ID).attack).toBe(16);
+    expect(getCreatureDefinition(CAIRN_SOVEREIGN_ID).attack).toBe(14);
   });
 });

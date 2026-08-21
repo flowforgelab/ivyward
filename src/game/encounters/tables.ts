@@ -114,6 +114,45 @@ export type RollWildOptions = {
   islandIndex?: number | null;
 };
 
+/**
+ * Inclusive wild level bands per habitat (#263 / #196 Section B).
+ * Archipelago uses `8 + islandIndex` instead of a min/max band.
+ */
+export const WILD_LEVEL_BANDS: Partial<
+  Record<ZoneId, Readonly<{ min: number; max: number }>>
+> = {
+  grove: { min: 1, max: 2 },
+  shrine: { min: 2, max: 3 },
+  village: { min: 3, max: 5 },
+  overworld: { min: 8, max: 14 },
+  mistwood: { min: 14, max: 20 },
+  emberfen: { min: 18, max: 24 },
+};
+
+/**
+ * Roll a wild combatant level for the zone. Archipelago is fixed at
+ * `8 + islandIndex`. Zones without a band (harbor / cottages) return 1.
+ */
+export function rollWildLevel(
+  zoneId: ZoneId,
+  options?: RollWildOptions,
+  rng: () => number = Math.random,
+): number {
+  if (zoneId === "archipelago") {
+    const index = options?.islandIndex;
+    if (index == null || index < 0 || index >= ARCHIPELAGO_ISLAND_COUNT) {
+      return 1;
+    }
+    return 8 + index;
+  }
+  const band = WILD_LEVEL_BANDS[zoneId];
+  if (!band) {
+    return 1;
+  }
+  const span = band.max - band.min;
+  return band.min + Math.floor(rng() * (span + 1));
+}
+
 /** Wild rolls only while on foot — sailing never attempts encounters. */
 export function shouldAttemptWildEncounter(sailing: boolean): boolean {
   return !sailing;
