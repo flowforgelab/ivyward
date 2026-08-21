@@ -68,7 +68,7 @@ Gate status reads `Overworld gate: LOCKED (Story 2/4)` until the spar quest is d
 
 - **Story 4/4** as above. Skill/content gate: first spar win unlocks the overworld.
 - **Party:** active party max 7; extras in reserve. [inferred: `ACTIVE_PARTY_LIMIT`]
-- **Levels:** creatures level from spar XP. [inferred: `XP_PER_SPAR_WIN` = 70 total shared across actives; `MAX_LEVEL` = 50; threshold for level N is `(N - 1) * 10` XP]
+- **Levels:** creatures level from spar XP. [inferred: `XP_PER_SPAR_WIN` = 70 total shared across actives; `MAX_LEVEL` = 50; cumulative XP for level L is `10*(L-1) + 2*(L-1)^2`]
 - **Codex:** encountering a creature once lists it under every habitat that can spawn it. 27 encounter-table species required for the hidden **Codex Keeper** achievement (evolution-only `Bramblewarden` and `Hearthflame` are not required). Once per save: Brook Tonic ×5 and Moonwake Draught ×5.
 - **Village side asks** (host only, after first-visit gift):
   - Warden Bryn: word of five different creatures → Brook Tonic ×2

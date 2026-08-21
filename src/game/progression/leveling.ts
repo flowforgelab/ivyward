@@ -1,18 +1,27 @@
 import type { CreatureInstance } from "../creatures/types";
 
-/** Fixed XP between consecutive levels: threshold for level N is (N - 1) * this. */
+/** Linear term in the cumulative XP curve: 10*(L-1) + 2*(L-1)^2. */
 export const XP_PER_LEVEL_STEP = 10;
+
+/** Quadratic term coefficient in the cumulative XP curve. */
+export const XP_CURVE_QUADRATIC = 2;
 
 /** Total XP pool granted on a spar win (shared across active party). */
 export const XP_PER_SPAR_WIN = 70;
 
 export const MAX_LEVEL = 50;
 
-/** Cumulative XP required to reach each level: (level - 1) * XP_PER_LEVEL_STEP. */
+/** Cumulative XP required to reach level L: 10*(L-1) + 2*(L-1)^2. */
+export function cumulativeXpForLevel(level: number): number {
+  const n = Math.max(0, level - 1);
+  return XP_PER_LEVEL_STEP * n + XP_CURVE_QUADRATIC * n * n;
+}
+
+/** Cumulative XP required to reach each level. */
 export const LEVEL_XP_THRESHOLDS: Record<number, number> = Object.fromEntries(
   Array.from({ length: MAX_LEVEL }, (_, i) => {
     const level = i + 1;
-    return [level, (level - 1) * XP_PER_LEVEL_STEP];
+    return [level, cumulativeXpForLevel(level)];
   }),
 );
 
@@ -27,13 +36,22 @@ export function getLevelForXp(xp: number): number {
   return level;
 }
 
+/**
+ * Keep a stored level when it exceeds the level XP implies (grandfathered
+ * saves after a curve re-pace). Never demotes.
+ */
+export function clampLevelAgainstXp(storedLevel: number, xp: number): number {
+  return Math.max(storedLevel, getLevelForXp(xp));
+}
+
 export function grantSparXp(
   creature: CreatureInstance,
   amount = XP_PER_SPAR_WIN,
 ): number {
   const prevLevel = creature.level;
   creature.xp += amount;
-  creature.level = getLevelForXp(creature.xp);
+  // max(...) so grandfathered high levels are not demoted on the next win.
+  creature.level = clampLevelAgainstXp(creature.level, creature.xp);
   return creature.level - prevLevel;
 }
 

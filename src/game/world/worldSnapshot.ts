@@ -43,6 +43,7 @@ import {
   isAchievementId,
   setUnlockedAchievements,
 } from "../progression/achievements";
+import { clampLevelAgainstXp } from "../progression/leveling";
 import { ALL_NPC_IDS } from "./npcs";
 import {
   getClaimedNpcGifts,
@@ -873,8 +874,11 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   // Pre-evolution saves lack speciesId; hasCreature() matches on it, so a
   // missing value reads owned sovereigns as absent and re-opens their claimed
   // encounters (#192).
+  // Keep stored level when it exceeds the XP-implied level after a curve
+  // re-pace (#264); never demote grandfathered saves.
   const party = snapshot.party.map((member) => ({
     ...member,
+    level: clampLevelAgainstXp(member.level, member.xp),
     speciesId: member.speciesId ?? member.definitionId,
   }));
   setPartyFromSnapshot(

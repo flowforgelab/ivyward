@@ -820,6 +820,14 @@ describe("party member validation hardening (#192)", () => {
     );
   });
 
+  it("keeps a grandfathered level above XP-implied level on load", () => {
+    // Old linear L50 / 490 XP must not demote under the re-paced curve (#264).
+    const member = partyMember({ level: 50, xp: 490 });
+    applyWorldSnapshot(validSnapshot({ party: [member] }));
+    expect(playerParty.creatures[0]?.level).toBe(50);
+    expect(playerParty.creatures[0]?.xp).toBe(490);
+  });
+
   it("backfills speciesId from definitionId on apply", () => {
     const member = partyMember({ definitionId: "mossling" });
     delete (member as Partial<CreatureInstance>).speciesId;
