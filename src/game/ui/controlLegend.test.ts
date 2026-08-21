@@ -8,6 +8,7 @@ import {
 } from "./controlLegend";
 
 const INDEX_HTML = readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+const STYLE_CSS = readFileSync(path.join(process.cwd(), "src/style.css"), "utf8");
 
 describe("control legend", () => {
   it("uses the decided HUD copy and is not a click-to-dismiss control", () => {
@@ -21,6 +22,15 @@ describe("control legend", () => {
     expect(hintAt).toBeGreaterThan(-1);
     expect(legendAt).toBeGreaterThan(hintAt);
     expect(INDEX_HTML).toContain(CONTROL_LEGEND_TEXT);
+  });
+
+  it("hides the HUD legend in the same style.css media query as the touch overlay", () => {
+    const query = `@media (hover: none) and (pointer: coarse), (max-width: ${CONTROL_LEGEND_NARROW_MAX_PX}px)`;
+    const queryAt = STYLE_CSS.indexOf(query);
+    expect(queryAt).toBeGreaterThan(-1);
+    expect(STYLE_CSS.slice(queryAt)).toMatch(
+      /\.status-control-legend\s*\{[^}]*display:\s*none/,
+    );
   });
 
   it("shows on a wide hover desktop and hides with the touch overlay rule", () => {

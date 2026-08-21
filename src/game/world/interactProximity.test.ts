@@ -29,6 +29,10 @@ describe("findNearbyDoor", () => {
   it("finds a cottage door on its tile and from the adjacent cottage prop", () => {
     expect(findNearbyDoor(village, 2, 4)?.label).toBe("Warden's Cottage");
     expect(findNearbyDoor(village, 2, 3)?.label).toBe("Warden's Cottage");
+    expect(findNearbyDoor(village, 7, 3)?.label).toBe("Weaver's Cottage");
+    expect(findNearbyDoor(village, 6, 2)?.label).toBe("Weaver's Cottage");
+    expect(findNearbyDoor(village, 2, 8)?.label).toBe("Hearthkeep Cottage");
+    expect(findNearbyDoor(village, 2, 7)?.label).toBe("Hearthkeep Cottage");
   });
 
   it("hides when the player walks out of adjacency", () => {

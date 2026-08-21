@@ -5,6 +5,7 @@ import { ZONE_ENCOUNTERS } from "../encounters/tables";
 import { getZoneNpcs } from "./npcs";
 import { ZONE_PROPS } from "./zoneProps";
 import { cottageFrame } from "./cottageWalls";
+import { findNearbyDoor } from "./interactProximity";
 
 const INTERIOR_IDS = (Object.keys(ZONES) as ZoneId[]).filter(
   (id) => ZONES[id].interior,
@@ -53,6 +54,17 @@ describe("cottage interiors", () => {
       floorY1: 5,
       doorX: 3,
     });
+  });
+
+  it("has no E-doors; the south opening is a walk-on exit", () => {
+    for (const id of INTERIOR_IDS) {
+      const interior = ZONES[id];
+      expect(interior.doors).toBeUndefined();
+      expect(findNearbyDoor(interior, 3, 6)).toBeUndefined();
+      expect(findNearbyDoor(interior, 3, 5)).toBeUndefined();
+      const exit = interior.transitions.find((t) => t.targetZone === "village");
+      expect(exit).toMatchObject({ x: 3, y: 6 });
+    }
   });
 });
 

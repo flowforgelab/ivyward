@@ -119,6 +119,7 @@ import {
 } from "../minigames/ids";
 import { canLaunchMinigame } from "../minigames/progress";
 import { findGatherPropNearPlayer } from "../world/gatherNodes";
+import { overlayAction, pickInteractPrompt } from "../world/interactPrompt";
 import { findNearbyDoor, isNearShrine } from "../world/interactProximity";
 import {
   getGatherCooldownRemainingMs,
@@ -1427,44 +1428,32 @@ export class IsometricScene extends Phaser.Scene {
 
   private updateInteractPrompt(): void {
     const shrine = this.isNearShrineTile();
-    const door = !shrine ? this.getNearbyDoor() : undefined;
-    const minigame = !shrine && !door ? this.getMinigameHere() : undefined;
-    const npc = !shrine && !door && !minigame ? this.getNearbyNpc() : undefined;
-    const dock =
-      !shrine && !door && !npc ? this.getNearbyDockPrompt() : undefined;
-    const sailingHint =
-      !shrine && !door && !npc && !dock && isSailing() ? "Sailing" : undefined;
-    const gather =
-      !shrine && !door && !npc && !dock && !sailingHint && !isVisitorMode()
-        ? this.getNearbyGatherProp()
-        : undefined;
+    const door = this.getNearbyDoor();
+    const minigame = this.getMinigameHere();
+    const npc = this.getNearbyNpc();
+    const dock = this.getNearbyDockPrompt();
+    const gather = isVisitorMode() ? undefined : this.getNearbyGatherProp();
+    const picked = pickInteractPrompt({
+      shrine: shrine ? "Press E — Moon Shrine" : undefined,
+      door: door ? `Press E — ${door.label}` : undefined,
+      minigame: minigame ? `Press E — ${minigame.title}` : undefined,
+      npc: npc ? `Press E — Talk to ${npc.name}` : undefined,
+      dock,
+      sailing: !dock && isSailing() ? "Sailing" : undefined,
+      gather: gather ? this.formatGatherPrompt(gather) : undefined,
+    });
+    const label = picked?.label;
+    const action = overlayAction(Boolean(this.shrinePrompt), label);
 
-    let label: string | undefined;
-    if (shrine) {
-      label = "Press E — Moon Shrine";
-    } else if (door) {
-      label = `Press E — ${door.label}`;
-    } else if (minigame) {
-      label = `Press E — ${minigame.title}`;
-    } else if (npc) {
-      label = `Press E — Talk to ${npc.name}`;
-    } else if (dock) {
-      label = dock;
-    } else if (sailingHint) {
-      label = sailingHint;
-    } else if (gather) {
-      label = this.formatGatherPrompt(gather);
-    }
-
-    if (label === undefined) {
-      if (this.shrinePrompt) {
-        this.shrinePrompt.destroy();
-        this.shrinePrompt = undefined;
-      }
+    if (action === "destroy") {
+      this.shrinePrompt?.destroy();
+      this.shrinePrompt = undefined;
       return;
     }
-
-    if (this.shrinePrompt) {
+    if (action === "idle" || !label) {
+      return;
+    }
+    if (action === "update" && this.shrinePrompt) {
       this.shrinePrompt.setText(label);
       placeWorldHudText(this, this.shrinePrompt, "bottom", 48);
       return;
