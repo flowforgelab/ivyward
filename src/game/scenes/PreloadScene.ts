@@ -8,6 +8,26 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
+    const { width, height } = this.scale;
+    this.cameras.main.setBackgroundColor(0xe8f2ec);
+
+    const barWidth = Math.min(280, Math.max(120, width * 0.55));
+    const barHeight = 14;
+    const cx = width / 2;
+    const cy = height / 2;
+
+    this.add
+      .rectangle(cx, cy, barWidth + 4, barHeight + 4, 0x3a5a4c)
+      .setOrigin(0.5);
+    const fill = this.add
+      .rectangle(cx - barWidth / 2, cy, 1, barHeight, 0xd7efe4)
+      .setOrigin(0, 0.5);
+
+    this.load.on("progress", (value: number) => {
+      const ratio = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+      fill.width = Math.max(1, barWidth * ratio);
+    });
+
     // ponytail: ignore missing optional Imagine files; procedural ensure* fills gaps
     this.load.on("loaderror", () => {
       /* intentional no-op */
