@@ -10,6 +10,26 @@ import {
 const INDEX_HTML = readFileSync(path.join(process.cwd(), "index.html"), "utf8");
 const STYLE_CSS = readFileSync(path.join(process.cwd(), "src/style.css"), "utf8");
 
+function cssBlockStartingAt(source: string, needle: string): string {
+  const start = source.indexOf(needle);
+  expect(start).toBeGreaterThan(-1);
+  const open = source.indexOf("{", start);
+  expect(open).toBeGreaterThan(start);
+  let depth = 0;
+  for (let i = open; i < source.length; i += 1) {
+    const ch = source[i];
+    if (ch === "{") {
+      depth += 1;
+    } else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(start, i + 1);
+      }
+    }
+  }
+  throw new Error(`unclosed CSS block after ${needle}`);
+}
+
 describe("control legend", () => {
   it("uses the decided HUD copy and is not a click-to-dismiss control", () => {
     expect(CONTROL_LEGEND_TEXT).toBe("E interact · WASD move");
@@ -26,11 +46,9 @@ describe("control legend", () => {
 
   it("hides the HUD legend in the same style.css media query as the touch overlay", () => {
     const query = `@media (hover: none) and (pointer: coarse), (max-width: ${CONTROL_LEGEND_NARROW_MAX_PX}px)`;
-    const queryAt = STYLE_CSS.indexOf(query);
-    expect(queryAt).toBeGreaterThan(-1);
-    expect(STYLE_CSS.slice(queryAt)).toMatch(
-      /\.status-control-legend\s*\{[^}]*display:\s*none/,
-    );
+    const block = cssBlockStartingAt(STYLE_CSS, query);
+    expect(block).toMatch(/\.touch-controls\s*\{[^}]*display:\s*block/);
+    expect(block).toMatch(/\.status-control-legend\s*\{[^}]*display:\s*none/);
   });
 
   it("shows on a wide hover desktop and hides with the touch overlay rule", () => {
